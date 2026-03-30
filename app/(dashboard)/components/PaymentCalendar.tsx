@@ -1,7 +1,18 @@
+'use client'
+
+import { useState } from 'react'
 import { AlertCircle, CalendarRange, CheckCircle2, Flag } from 'lucide-react'
-import { cn, formatearMonto } from '@/lib/utils'
+import { Badge } from '@mui/material'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers'
+import { PickersDay, type PickersDayProps } from '@mui/x-date-pickers/PickersDay'
+import dayjs, { type Dayjs } from 'dayjs'
+import 'dayjs/locale/es'
+import { formatearMonto } from '@/lib/utils'
 import type { EventoActivo, PaymentMilestone } from './dashboard.types'
-import { formatLocalDate, formatMonthLabel, parseLocalDate, toDateKey } from './dashboard.utils'
+import { formatLocalDate, formatMonthLabel, toDateKey } from './dashboard.utils'
+
+dayjs.locale('es')
 
 interface PaymentCalendarProps {
   activeEvent: EventoActivo | null
@@ -9,46 +20,87 @@ interface PaymentCalendarProps {
   referenceDate: string
 }
 
-interface CalendarCell {
-  key: string
-  day: number
-  isCurrentMonth: boolean
-  isToday: boolean
-  isDeadline: boolean
-  tone: 'none' | 'success' | 'critical'
-  label: string | null
-  count: number
+interface CalendarDayProps extends PickersDayProps {
+  deadlineKey?: string
+  milestoneMap?: Record<string, PaymentMilestone>
 }
 
-const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+function CalendarDay({
+  day,
+  outsideCurrentMonth,
+  deadlineKey,
+  milestoneMap = {},
+  ...other
+}: CalendarDayProps) {
+  const key = day.format('YYYY-MM-DD')
+  const milestone = milestoneMap[key]
+  const isDeadline = key === deadlineKey
+  const tone = (milestone?.status ?? 'none') as 'none' | 'success' | 'critical'
+  const badgeColor = tone === 'critical' ? '#ef4444' : tone === 'success' ? '#22c55e' : '#cbd5e1'
+  const dayBackground =
+    tone === 'critical'
+      ? 'rgba(254,242,242,0.95)'
+      : tone === 'success'
+        ? 'rgba(240,253,244,0.98)'
+        : outsideCurrentMonth
+          ? 'transparent'
+          : 'rgba(248,250,252,0.92)'
 
-function buildCalendar(referenceDate: string, milestones: PaymentMilestone[], deadline?: string): CalendarCell[] {
-  const baseDate = parseLocalDate(referenceDate)
-  const firstDay = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
-  const lastDay = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-  const firstWeekday = (firstDay.getDay() + 6) % 7
-  const totalDays = lastDay.getDate()
-  const totalCells = Math.ceil((firstWeekday + totalDays) / 7) * 7
-  const milestoneMap = new Map(milestones.map((item) => [item.date, item]))
-  const todayKey = toDateKey(new Date())
-
-  return Array.from({ length: totalCells }, (_, index) => {
-    const dayNumber = index - firstWeekday + 1
-    const date = new Date(baseDate.getFullYear(), baseDate.getMonth(), dayNumber, 12)
-    const key = toDateKey(date)
-    const milestone = milestoneMap.get(key)
-
-    return {
-      key,
-      day: date.getDate(),
-      isCurrentMonth: dayNumber >= 1 && dayNumber <= totalDays,
-      isToday: key === todayKey,
-      isDeadline: Boolean(deadline && key === deadline),
-      tone: milestone?.status ?? 'none',
-      label: milestone?.label ?? null,
-      count: milestone?.count ?? 0,
-    }
-  })
+  return (
+    <Badge
+      overlap="circular"
+      variant="dot"
+      invisible={!milestone}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      sx={{
+        '& .MuiBadge-badge': {
+          backgroundColor: badgeColor,
+          boxShadow: '0 0 0 2px white',
+          height: 8,
+          minWidth: 8,
+        },
+      }}
+    >
+      <PickersDay
+        day={day}
+        outsideCurrentMonth={outsideCurrentMonth}
+        disableMargin
+        {...other}
+        sx={{
+          fontSize: { xs: '0.72rem', lg: '0.82rem' },
+          fontWeight: 600,
+          color: outsideCurrentMonth ? '#94a3b8' : '#475569',
+          backgroundColor: dayBackground,
+          border: isDeadline ? '1px solid #93c5fd' : '1px solid transparent',
+          borderRadius: '18px',
+          mx: 0,
+          width: { xs: 34, lg: 42 },
+          height: { xs: 34, lg: 42 },
+          opacity: outsideCurrentMonth ? 0.35 : 1,
+          '&:hover': {
+            backgroundColor:
+              tone === 'critical'
+                ? 'rgba(254,226,226,1)'
+                : tone === 'success'
+                  ? 'rgba(220,252,231,1)'
+                  : 'rgba(239,246,255,1)',
+          },
+          '&.MuiPickersDay-today': {
+            border: '1px solid #60a5fa',
+            backgroundColor: tone === 'none' ? 'rgba(219,234,254,0.92)' : dayBackground,
+          },
+          '&.Mui-selected': {
+            color: '#0f172a',
+            backgroundColor: '#dbeafe',
+            border: '1px solid #60a5fa',
+          },
+          '&.Mui-selected:hover': {
+            backgroundColor: '#bfdbfe',
+          },
+        }}
+      />
+    </Badge>
+  )
 }
 
 export default function PaymentCalendar({
@@ -57,10 +109,22 @@ export default function PaymentCalendar({
   referenceDate,
 }: PaymentCalendarProps) {
   const deadlineKey = activeEvent ? toDateKey(activeEvent.fechaLimitePago) : undefined
-  const calendarCells = buildCalendar(referenceDate, milestones, deadlineKey)
+  const milestoneMap = Object.fromEntries(
+    milestones.map((milestone) => [milestone.date, milestone])
+  ) as Record<string, PaymentMilestone>
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs(referenceDate))
+
   const progress = Math.round((activeEvent?.porcentajeRecaudacion ?? 0) * 100)
   const successfulMilestones = milestones.filter((milestone) => milestone.status === 'success')
   const criticalMilestones = milestones.filter((milestone) => milestone.status === 'critical')
+  const selectedMilestone = milestoneMap[selectedDate.format('YYYY-MM-DD')] ?? null
+  const CalendarDaySlot = (dayProps: PickersDayProps) => (
+    <CalendarDay
+      {...dayProps}
+      deadlineKey={deadlineKey}
+      milestoneMap={milestoneMap}
+    />
+  )
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)] lg:rounded-[2rem] lg:p-5 xl:p-6">
@@ -93,46 +157,52 @@ export default function PaymentCalendar({
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 lg:gap-2">
-            {weekDays.map((day, index) => (
-              <span key={`${day}-${index}`}>{day}</span>
-            ))}
-          </div>
-
-          <div className="mt-2 grid min-h-0 flex-1 grid-cols-7 gap-1 lg:gap-2">
-            {calendarCells.map((cell) => (
-              <div
-                key={cell.key}
-                className={cn(
-                  'flex min-h-[2.65rem] flex-col justify-between rounded-2xl border border-transparent px-1.5 py-1 transition-colors lg:min-h-[3.15rem] lg:px-2 lg:py-1.5',
-                  !cell.isCurrentMonth && 'opacity-30',
-                  cell.isCurrentMonth && 'bg-slate-50/75',
-                  cell.isToday && 'border-brand-300 bg-brand-50/90',
-                  cell.tone === 'success' && 'border-success-100 bg-success-50',
-                  cell.tone === 'critical' && 'border-danger-100 bg-danger-50',
-                  cell.isDeadline && 'ring-1 ring-brand-200'
-                )}
-                title={cell.label ?? undefined}
-              >
-                <span className="text-[10px] font-semibold text-slate-500 lg:text-xs">
-                  {cell.day}
-                </span>
-                <div className="flex items-center justify-between gap-1">
-                  <span
-                    className={cn(
-                      'h-2 w-2 rounded-full bg-slate-200 lg:h-2.5 lg:w-2.5',
-                      cell.tone === 'success' && 'bg-success-500',
-                      cell.tone === 'critical' && 'bg-danger-500'
-                    )}
-                  />
-                  {cell.count > 0 ? (
-                    <span className="text-[9px] font-semibold text-slate-500 lg:text-[10px]">
-                      {cell.count}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-2 lg:p-3">
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+              <DateCalendar
+                value={selectedDate}
+                onChange={(value) => value && setSelectedDate(value)}
+                showDaysOutsideCurrentMonth
+                reduceAnimations
+                views={['day']}
+                slots={{ day: CalendarDaySlot }}
+                sx={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  backgroundColor: 'transparent',
+                  '& .MuiPickersCalendarHeader-root': {
+                    paddingLeft: 1,
+                    paddingRight: 1,
+                    marginBottom: 1,
+                  },
+                  '& .MuiPickersCalendarHeader-label': {
+                    fontFamily: 'inherit',
+                    fontSize: { xs: '0.9rem', lg: '1rem' },
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    textTransform: 'capitalize',
+                  },
+                  '& .MuiDayCalendar-weekDayLabel': {
+                    fontFamily: 'inherit',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    color: '#94a3b8',
+                  },
+                  '& .MuiPickersArrowSwitcher-button': {
+                    color: '#2563eb',
+                  },
+                  '& .MuiDayCalendar-header': {
+                    justifyContent: 'space-between',
+                  },
+                  '& .MuiDayCalendar-slideTransition': {
+                    minHeight: { xs: 235, lg: 290 },
+                  },
+                  '& .MuiDayCalendar-monthContainer': {
+                    rowGap: { xs: 3, lg: 6 },
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-4 lg:gap-3">
@@ -149,9 +219,9 @@ export default function PaymentCalendar({
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-3 py-2 lg:p-3">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Cierre</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Seleccion</p>
               <p className="mt-1 text-xs font-semibold text-slate-800 lg:text-sm">
-                {activeEvent ? formatLocalDate(activeEvent.fechaLimitePago) : 'Por definir'}
+                {formatLocalDate(selectedDate.toDate())}
               </p>
             </div>
           </div>
@@ -181,12 +251,23 @@ export default function PaymentCalendar({
           <div className="mt-4 rounded-2xl bg-white px-4 py-3 shadow-sm">
             <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Actividad</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{successfulMilestones.length}</p>
-            <p className="mt-1 text-xs text-slate-500">días con pagos registrados</p>
+            <p className="mt-1 text-xs text-slate-500">dias con pagos registrados</p>
           </div>
           <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
             <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Riesgo</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{criticalMilestones.length}</p>
-            <p className="mt-1 text-xs text-slate-500">hitos críticos detectados</p>
+            <p className="mt-1 text-xs text-slate-500">hitos criticos detectados</p>
+          </div>
+          <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Dia seleccionado</p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">
+              {selectedMilestone?.label ?? 'Sin hitos registrados'}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {selectedMilestone
+                ? `${selectedMilestone.count} movimientos por ${formatearMonto(selectedMilestone.amount)}`
+                : 'Selecciona un dia del calendario para revisar su detalle.'}
+            </p>
           </div>
           <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
             <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Meta activa</p>
@@ -196,7 +277,7 @@ export default function PaymentCalendar({
             <p className="mt-1 text-xs text-slate-500">
               {activeEvent
                 ? `${activeEvent.cuotasPagadas} cuotas pagadas y ${activeEvent.cuotasPendientes} pendientes`
-                : 'Aquí verás el resumen del evento más antiguo vigente.'}
+                : 'Aqui veras el resumen del evento mas antiguo vigente.'}
             </p>
           </div>
           <div className="mt-auto flex flex-col gap-2 pt-4 text-[11px] text-slate-500">

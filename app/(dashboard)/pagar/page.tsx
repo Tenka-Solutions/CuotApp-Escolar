@@ -1,0 +1,264 @@
+import type { Metadata } from 'next'
+import { CreditCard, Landmark, ReceiptText } from 'lucide-react'
+import { ROOT_DEV_EMAIL } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/server'
+import type { Evento, Perfil, Transaccion } from '@/lib/types'
+import { formatearMonto } from '@/lib/utils'
+import ModuleShell from '../components/ModuleShell'
+import { formatLocalDate } from '../components/dashboard.utils'
+import PaymentSubmissionForm from './PaymentSubmissionForm'
+
+export const metadata: Metadata = { title: 'Pagar' }
+
+type PerfilCurso = Pick<Perfil, 'id' | 'curso_id' | 'nombre_completo'>
+type EventoPago = Pick<Evento, 'id' | 'nombre' | 'fecha_limite_pago' | 'monto_objetivo'>
+type PaymentRecord = Pick<
+  Transaccion,
+  'id' | 'descripcion' | 'monto' | 'estado' | 'numero_boleta' | 'fecha_registro'
+>
+
+function getStatusCopy(status: PaymentRecord['estado']): string {
+  if (status === 'aprobada') return 'Aprobada'
+  if (status === 'rechazada') return 'Rechazada'
+  if (status === 'pendiente_aprobacion') return 'Pend. aprob.'
+  return 'Pend. valid.'
+}
+
+function getStatusClass(status: PaymentRecord['estado']): string {
+  if (status === 'aprobada') return 'bg-success-50 text-success-700'
+  if (status === 'rechazada') return 'bg-danger-50 text-danger-700'
+  return 'bg-warning-50 text-warning-700'
+}
+
+export default async function PagarPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const isRootDev = user.email?.toLowerCase() === ROOT_DEV_EMAIL
+  const { data: perfilData } = await supabase
+    .from('perfiles')
+    .select('id, curso_id, nombre_completo')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const perfil = perfilData as PerfilCurso | null
+
+  let evento: EventoPago | null = null
+  let montoRecaudado = 0
+  let cuotasPendientes = 0
+  let recentPayments: PaymentRecord[] = []
+  let disabledMessage: string | null = null
+
+  if (!perfil && isRootDev) {
+    evento = {
+      id: 'root-pay-1',
+      nombre: 'Salida pedagogica de prueba',
+      fecha_limite_pago: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
+      monto_objetivo: 240000,
+    }
+    montoRecaudado = 168000
+    cuotasPendientes = 6
+    recentPayments = [
+      {
+        id: 'root-payment-1',
+        descripcion: 'Pago reportado por apoderado',
+        monto: 28000,
+        estado: 'pendiente_validacion',
+        numero_boleta: 'B-1024',
+        fecha_registro: new Date().toISOString(),
+      },
+    ]
+    disabledMessage =
+      'El usuario root de desarrollo puede recorrer el modulo, pero para registrar pagos necesita un perfil persistido.'
+  } else if (perfil?.curso_id) {
+    const { data: eventoData } = await supabase
+      .from('eventos')
+      .select('id, nombre, fecha_limite_pago, monto_objetivo')
+      .eq('curso_id', perfil.curso_id)
+      .eq('estado', 'activo')
+      .order('fecha_limite_pago', { ascending: true })
+      .limit(1)
+
+    evento = ((eventoData ?? [])[0] ?? null) as EventoPago | null
+
+    if (evento) {
+      const [{ data: cuotasData }, { data: paymentsData }] = await Promise.all([
+        supabase
+          .from('cuotas')
+          .select('monto_total, pagado')
+          .eq('curso_id', perfil.curso_id)
+          .eq('evento_id', evento.id),
+        supabase
+          .from('transacciones')
+          .select('id, descripcion, monto, estado, numero_boleta, fecha_registro')
+          .eq('curso_id', perfil.curso_id)
+          .eq('tipo', 'cuota_ingreso')
+          .order('fecha_registro', { ascending: false })
+          .limit(6),
+      ])
+
+      const cuotas = (cuotasData ?? []) as Array<{ monto_total: number; pagado: boolean }>
+      montoRecaudado = cuotas
+        .filter((cuota) => cuota.pagado)
+        .reduce((sum, cuota) => sum + cuota.monto_total, 0)
+      cuotasPendientes = cuotas.filter((cuota) => !cuota.pagado).length
+      recentPayments = (paymentsData ?? []) as PaymentRecord[]
+    } else {
+      disabledMessage = 'No hay un evento activo para registrar pagos en este momento.'
+    }
+  } else {
+    disabledMessage = 'Tu perfil aun no esta listo para registrar pagos.'
+  }
+
+  const suggestedDescription = evento
+    ? `Pago asociado a ${evento.nombre}`
+    : 'Pago reportado por apoderado'
+
+  return (
+    <ModuleShell
+      title="Centro de Pago"
+      description="Consulta el evento activo, registra pagos y sigue el estado de cada envio desde el mismo flujo."
+      badge={evento ? 'Evento activo' : 'Sin evento'}
+    >
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_23rem]">
+        <div className="space-y-4">
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            {evento ? (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Evento a pagar
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">{evento.nombre}</h2>
+                  </div>
+                  <div className="rounded-2xl bg-success-50 p-3 text-success-600">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Meta</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {formatearMonto(evento.monto_objetivo)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                      Recaudado
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {formatearMonto(montoRecaudado)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                      Cierre
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {formatLocalDate(evento.fecha_limite_pago)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-slate-500">No hay eventos activos para pagar por ahora.</p>
+            )}
+          </section>
+
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                  Ultimos pagos
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                  Registros recientes
+                </h2>
+              </div>
+              <div className="rounded-2xl bg-brand-50 p-3 text-brand-700">
+                <ReceiptText className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {recentPayments.length > 0 ? (
+                recentPayments.map((payment) => (
+                  <article
+                    key={payment.id}
+                    className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {payment.descripcion}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {payment.numero_boleta ?? 'Sin numero'} |{' '}
+                        {formatLocalDate(payment.fecha_registro)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900">
+                        {formatearMonto(payment.monto)}
+                      </p>
+                      <span
+                        className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${getStatusClass(payment.estado)}`}
+                      >
+                        {getStatusCopy(payment.estado)}
+                      </span>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-slate-500">
+                  Aun no hay pagos reportados para este curso.
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-4">
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            <div className="rounded-2xl bg-brand-50 px-4 py-3">
+              <Landmark className="h-5 w-5 text-brand-700" />
+              <p className="mt-3 text-sm font-semibold text-brand-900">Pendientes actuales</p>
+              <p className="mt-1 text-xs leading-5 text-brand-700/80">
+                {evento
+                  ? `${cuotasPendientes} cuotas pendientes antes del cierre`
+                  : 'Cuando exista un evento activo, aqui veras su resumen financiero.'}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Registrar pago
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                Enviar comprobante
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Ingresa el monto, una descripcion y, si ya lo tienes, el link del
+                comprobante.
+              </p>
+            </div>
+
+            <div className="mt-5">
+              <PaymentSubmissionForm
+                eventoId={evento?.id ?? null}
+                suggestedDescription={suggestedDescription}
+                disabled={!evento || Boolean(disabledMessage)}
+                disabledMessage={disabledMessage}
+              />
+            </div>
+          </section>
+        </aside>
+      </div>
+    </ModuleShell>
+  )
+}

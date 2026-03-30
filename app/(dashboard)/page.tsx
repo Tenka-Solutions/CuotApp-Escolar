@@ -15,6 +15,7 @@ import type {
   Perfil,
   Transaccion,
   Votacion,
+  Voto,
 } from '@/lib/types'
 import { cn, formatearMonto, tiempoRelativo } from '@/lib/utils'
 import ActionButtonGrid from './components/ActionButtonGrid'
@@ -54,6 +55,13 @@ type DashboardVote = Pick<
   Votacion,
   'id' | 'tipo' | 'fecha_fin' | 'vuelta' | 'votos_si' | 'votos_no' | 'votos_abstencion' | 'total_votantes_habilitados'
 >
+type DashboardVoteRow = Pick<Voto, 'id' | 'opcion' | 'votacion_id'>
+
+interface VoteCounts {
+  si: number
+  no: number
+  abstencion: number
+}
 
 function buildBalance(billeteras: CursoWallet[]): SaldoTotal {
   const apoderados = billeteras.find((wallet) => wallet.tipo === 'apoderados')?.saldo ?? 0
@@ -152,6 +160,22 @@ function buildMilestones(
   }
 
   return [...groupedMilestones.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function buildVoteCountMap(votes: DashboardVoteRow[]): Map<string, VoteCounts> {
+  const counts = new Map<string, VoteCounts>()
+
+  for (const vote of votes) {
+    const current = counts.get(vote.votacion_id) ?? { si: 0, no: 0, abstencion: 0 }
+
+    if (vote.opcion === 'si') current.si += 1
+    if (vote.opcion === 'no') current.no += 1
+    if (vote.opcion === 'abstencion') current.abstencion += 1
+
+    counts.set(vote.votacion_id, current)
+  }
+
+  return counts
 }
 
 function transactionTone(tipo: DashboardMovement['tipo']): 'success' | 'danger' {
@@ -354,6 +378,17 @@ export default async function DashboardPage() {
 
     const billeteras = (billeterasData ?? []) as CursoWallet[]
     const cuotas = (cuotasData ?? []) as DashboardCuota[]
+    const dashboardVotes = (votacionesData ?? []) as DashboardVote[]
+    const dashboardVoteIds = dashboardVotes.map((vote) => vote.id)
+    const { data: voteRowsData } =
+      dashboardVoteIds.length > 0
+        ? await supabase
+            .from('votos')
+            .select('id, opcion, votacion_id')
+            .in('votacion_id', dashboardVoteIds)
+        : { data: [] as DashboardVoteRow[] }
+    const voteCountMap = buildVoteCountMap((voteRowsData ?? []) as DashboardVoteRow[])
+
     transacciones = ((transaccionesData ?? []) as DashboardTx[]).map((tx) => ({
       id: tx.id,
       descripcion: tx.descripcion,
@@ -362,14 +397,20 @@ export default async function DashboardPage() {
       estado: tx.estado,
       tipo: tx.tipo,
     }))
-    votaciones = ((votacionesData ?? []) as DashboardVote[]).map((vote) => ({
-      id: vote.id,
-      tipo: vote.tipo,
-      fechaFin: vote.fecha_fin,
-      vuelta: vote.vuelta,
-      votosEmitidos: vote.votos_si + vote.votos_no + vote.votos_abstencion,
-      totalVotantes: vote.total_votantes_habilitados,
-    }))
+    votaciones = dashboardVotes.map((vote) => {
+      const liveCounts = voteCountMap.get(vote.id)
+
+      return {
+        id: vote.id,
+        tipo: vote.tipo,
+        fechaFin: vote.fecha_fin,
+        vuelta: vote.vuelta,
+        votosEmitidos: liveCounts
+          ? liveCounts.si + liveCounts.no + liveCounts.abstencion
+          : vote.votos_si + vote.votos_no + vote.votos_abstencion,
+        totalVotantes: vote.total_votantes_habilitados,
+      }
+    })
 
     balance = buildBalance(billeteras)
     activeEvent = buildActiveEvent(evento, cuotas)
