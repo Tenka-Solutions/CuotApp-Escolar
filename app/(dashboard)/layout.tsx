@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { ROOT_DEV_EMAIL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Perfil } from '@/lib/types'
 
@@ -12,6 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  const isRootDev = user.email?.toLowerCase() === ROOT_DEV_EMAIL
 
   const { data } = await supabase
     .from('perfiles')
@@ -21,14 +23,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const perfil = data as Pick<Perfil, 'id' | 'nombre_completo' | 'rol' | 'estado' | 'curso_id'> | null
 
+  const shell = (
+    <div className="min-h-dvh bg-[linear-gradient(180deg,#eef5ff_0%,#f8fafc_24%,#f8fafc_100%)]">
+      <div className="mx-auto flex h-dvh w-full max-w-[1500px] flex-col px-0 md:px-4 xl:px-6">
+        {children}
+      </div>
+    </div>
+  )
+
+  if (!perfil && isRootDev) {
+    return shell
+  }
+
   if (!perfil)                                              redirect('/registro')
   if (perfil.estado === 'pendiente')                        redirect('/pendiente-aprobacion')
   if (perfil.estado === 'rechazado' || perfil.estado === 'suspendido') redirect('/acceso-denegado')
 
   return (
-    // Shell mobile-first: altura completa del viewport dinámico
-    <div className="flex flex-col h-dvh bg-slate-50 max-w-lg mx-auto">
-      {children}
-    </div>
+    // Shell mobile-first, expandido para escritorio
+    shell
   )
 }

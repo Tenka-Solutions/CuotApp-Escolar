@@ -83,3 +83,7 @@ export const REGLAS = {
 
 // ── Rutas públicas (sin autenticación requerida) ──────────────────────────────
 export const RUTAS_PUBLICAS = ['/login', '/registro'] as const
+
+/** Credenciales de desarrollo para entrar como root mientras se termina de montar el backend. */
+export const ROOT_DEV_EMAIL = 'admin@cuotapp.local' as const
+export const ROOT_DEV_PASSWORD = 'admin' as const
