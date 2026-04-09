@@ -8,7 +8,9 @@
       "Bash(npm audit:*)",
       "Bash(npm show:*)",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git pull:*)",
+      "Bash(ls -d /c/dev/cuotapp/*/)"
     ]
   }
 }

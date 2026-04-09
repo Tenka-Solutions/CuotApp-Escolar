@@ -16,7 +16,7 @@ dayjs.locale('es')
 
 interface PaymentCalendarProps {
   activeEvent: EventoActivo | null
-  milestones: PaymentMilestone[]
+  milestones:  PaymentMilestone[]
   referenceDate: string
 }
 
@@ -25,26 +25,17 @@ interface CalendarDayProps extends PickersDayProps {
   milestoneMap?: Record<string, PaymentMilestone>
 }
 
-function CalendarDay({
-  day,
-  outsideCurrentMonth,
-  deadlineKey,
-  milestoneMap = {},
-  ...other
-}: CalendarDayProps) {
-  const key = day.format('YYYY-MM-DD')
+function CalendarDay({ day, outsideCurrentMonth, deadlineKey, milestoneMap = {}, ...other }: CalendarDayProps) {
+  const key       = day.format('YYYY-MM-DD')
   const milestone = milestoneMap[key]
   const isDeadline = key === deadlineKey
   const tone = (milestone?.status ?? 'none') as 'none' | 'success' | 'critical'
-  const badgeColor = tone === 'critical' ? '#ef4444' : tone === 'success' ? '#22c55e' : '#cbd5e1'
-  const dayBackground =
-    tone === 'critical'
-      ? 'rgba(254,242,242,0.95)'
-      : tone === 'success'
-        ? 'rgba(240,253,244,0.98)'
-        : outsideCurrentMonth
-          ? 'transparent'
-          : 'rgba(248,250,252,0.92)'
+
+  const badgeColor = tone === 'critical' ? '#ef4444' : tone === 'success' ? '#22c55e' : 'transparent'
+  const bg =
+    tone === 'critical' ? 'rgba(254,242,242,0.95)' :
+    tone === 'success'  ? 'rgba(240,253,244,0.98)' :
+    outsideCurrentMonth ? 'transparent'             : 'rgba(248,250,252,0.85)'
 
   return (
     <Badge
@@ -52,14 +43,7 @@ function CalendarDay({
       variant="dot"
       invisible={!milestone}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      sx={{
-        '& .MuiBadge-badge': {
-          backgroundColor: badgeColor,
-          boxShadow: '0 0 0 2px white',
-          height: 8,
-          minWidth: 8,
-        },
-      }}
+      sx={{ '& .MuiBadge-badge': { backgroundColor: badgeColor, boxShadow: '0 0 0 2px white', height: 6, minWidth: 6 } }}
     >
       <PickersDay
         day={day}
@@ -67,234 +51,162 @@ function CalendarDay({
         disableMargin
         {...other}
         sx={{
-          fontSize: { xs: '0.72rem', lg: '0.82rem' },
+          fontSize: { xs: '0.65rem', lg: '0.72rem' },
           fontWeight: 600,
-          color: outsideCurrentMonth ? '#94a3b8' : '#475569',
-          backgroundColor: dayBackground,
-          border: isDeadline ? '1px solid #93c5fd' : '1px solid transparent',
-          borderRadius: '18px',
+          color: outsideCurrentMonth ? '#94a3b8' : '#334155',
+          backgroundColor: bg,
+          border: isDeadline ? '1.5px solid var(--color-brand-300)' : '1px solid transparent',
+          borderRadius: '10px',
           mx: 0,
-          width: { xs: 34, lg: 42 },
-          height: { xs: 34, lg: 42 },
-          opacity: outsideCurrentMonth ? 0.35 : 1,
+          width:  { xs: 32, lg: 36 },
+          height: { xs: 30, lg: 34 },
+          opacity: outsideCurrentMonth ? 0.3 : 1,
           '&:hover': {
             backgroundColor:
-              tone === 'critical'
-                ? 'rgba(254,226,226,1)'
-                : tone === 'success'
-                  ? 'rgba(220,252,231,1)'
-                  : 'rgba(239,246,255,1)',
+              tone === 'critical' ? 'rgba(254,226,226,1)' :
+              tone === 'success'  ? 'rgba(220,252,231,1)' : 'rgba(237,233,254,0.8)',
           },
           '&.MuiPickersDay-today': {
-            border: '1px solid #60a5fa',
-            backgroundColor: tone === 'none' ? 'rgba(219,234,254,0.92)' : dayBackground,
+            border: '1.5px solid var(--color-brand-400)',
+            backgroundColor: tone === 'none' ? 'rgba(233,213,255,0.5)' : bg,
           },
-          '&.Mui-selected': {
-            color: '#0f172a',
-            backgroundColor: '#dbeafe',
-            border: '1px solid #60a5fa',
-          },
-          '&.Mui-selected:hover': {
-            backgroundColor: '#bfdbfe',
-          },
+          '&.Mui-selected': { color: '#1e1b4b', backgroundColor: 'var(--color-brand-100)', border: '1.5px solid var(--color-brand-300)' },
+          '&.Mui-selected:hover': { backgroundColor: 'var(--color-brand-200)' },
         }}
       />
     </Badge>
   )
 }
 
-export default function PaymentCalendar({
-  activeEvent,
-  milestones,
-  referenceDate,
-}: PaymentCalendarProps) {
-  const deadlineKey = activeEvent ? toDateKey(activeEvent.fechaLimitePago) : undefined
-  const milestoneMap = Object.fromEntries(
-    milestones.map((milestone) => [milestone.date, milestone])
-  ) as Record<string, PaymentMilestone>
+export default function PaymentCalendar({ activeEvent, milestones, referenceDate }: PaymentCalendarProps) {
+  const deadlineKey  = activeEvent ? toDateKey(activeEvent.fechaLimitePago) : undefined
+  const milestoneMap = Object.fromEntries(milestones.map((m) => [m.date, m])) as Record<string, PaymentMilestone>
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs(referenceDate))
 
-  const progress = Math.round((activeEvent?.porcentajeRecaudacion ?? 0) * 100)
-  const successfulMilestones = milestones.filter((milestone) => milestone.status === 'success')
-  const criticalMilestones = milestones.filter((milestone) => milestone.status === 'critical')
-  const selectedMilestone = milestoneMap[selectedDate.format('YYYY-MM-DD')] ?? null
-  const CalendarDaySlot = (dayProps: PickersDayProps) => (
-    <CalendarDay
-      {...dayProps}
-      deadlineKey={deadlineKey}
-      milestoneMap={milestoneMap}
-    />
+  const progress           = Math.round((activeEvent?.porcentajeRecaudacion ?? 0) * 100)
+  const successMilestones  = milestones.filter((m) => m.status === 'success')
+  const criticalMilestones = milestones.filter((m) => m.status === 'critical')
+  const selectedMilestone  = milestoneMap[selectedDate.format('YYYY-MM-DD')] ?? null
+
+  const CalendarDaySlot = (p: PickersDayProps) => (
+    <CalendarDay {...p} deadlineKey={deadlineKey} milestoneMap={milestoneMap} />
   )
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)] lg:rounded-[2rem] lg:p-5 xl:p-6">
-      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-5">
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                Seguimiento
-              </p>
-              <div className="mt-1 flex items-center gap-2">
-                <CalendarRange className="h-4 w-4 text-brand-600" />
-                <h2 className="text-sm font-semibold text-slate-900 lg:text-base">
-                  Calendario de Pagos
-                </h2>
-              </div>
-              <p className="mt-1 text-xs capitalize text-slate-500 lg:text-sm">
-                {formatMonthLabel(referenceDate)}
-              </p>
-            </div>
-
-            {activeEvent ? (
-              <div className="rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-semibold text-success-600 lg:px-3 lg:py-1.5 lg:text-xs">
-                {progress}% cumplido
-              </div>
-            ) : (
-              <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 lg:px-3 lg:py-1.5 lg:text-xs">
-                Sin evento
-              </div>
-            )}
+    <section className="flex h-full flex-col overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-sm lg:rounded-[2rem]">
+      {/* Header */}
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Seguimiento</p>
+          <div className="mt-1 flex items-center gap-2">
+            <CalendarRange className="h-4 w-4 text-brand-600" />
+            <h2 className="text-sm font-semibold text-slate-900">Calendario de Pagos</h2>
           </div>
+          <p className="mt-0.5 text-xs capitalize text-slate-400">{formatMonthLabel(referenceDate)}</p>
+        </div>
+        {activeEvent ? (
+          <div className="shrink-0 rounded-full bg-success-50 px-3 py-1 text-xs font-semibold text-success-600">
+            {progress}% cumplido
+          </div>
+        ) : (
+          <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-400">
+            Sin evento
+          </div>
+        )}
+      </div>
 
-          <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-2 lg:p-3">
+      {/* Body: calendar + sidebar */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+
+        {/* Calendar column */}
+        <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden p-4">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-1">
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
               <DateCalendar
                 value={selectedDate}
-                onChange={(value) => value && setSelectedDate(value)}
+                onChange={(v) => v && setSelectedDate(v)}
                 showDaysOutsideCurrentMonth
                 reduceAnimations
                 views={['day']}
                 slots={{ day: CalendarDaySlot }}
                 sx={{
                   width: '100%',
-                  maxWidth: '100%',
+                  maxWidth: 380,
+                  height: 'auto',
+                  mx: 'auto',
                   backgroundColor: 'transparent',
-                  '& .MuiPickersCalendarHeader-root': {
-                    paddingLeft: 1,
-                    paddingRight: 1,
-                    marginBottom: 1,
-                  },
-                  '& .MuiPickersCalendarHeader-label': {
-                    fontFamily: 'inherit',
-                    fontSize: { xs: '0.9rem', lg: '1rem' },
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    textTransform: 'capitalize',
-                  },
-                  '& .MuiDayCalendar-weekDayLabel': {
-                    fontFamily: 'inherit',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    color: '#94a3b8',
-                  },
-                  '& .MuiPickersArrowSwitcher-button': {
-                    color: '#2563eb',
-                  },
-                  '& .MuiDayCalendar-header': {
-                    justifyContent: 'space-between',
-                  },
-                  '& .MuiDayCalendar-slideTransition': {
-                    minHeight: { xs: 235, lg: 290 },
-                  },
-                  '& .MuiDayCalendar-monthContainer': {
-                    rowGap: { xs: 3, lg: 6 },
-                  },
+                  '& .MuiPickersCalendarHeader-root': { paddingLeft: 1, paddingRight: 1, marginTop: 0, marginBottom: 0, minHeight: 40 },
+                  '& .MuiPickersCalendarHeader-label': { fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', textTransform: 'capitalize' },
+                  '& .MuiDayCalendar-weekDayLabel': { fontFamily: 'inherit', fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', width: { xs: 32, lg: 36 }, height: { xs: 20, lg: 22 } },
+                  '& .MuiPickersArrowSwitcher-button': { color: 'var(--color-brand-600)', padding: '4px' },
+                  '& .MuiDayCalendar-slideTransition': { minHeight: { xs: 190, lg: 220 } },
+                  '& .MuiDayCalendar-monthContainer': { rowGap: { xs: 2, lg: 4 } },
                 }}
               />
             </LocalizationProvider>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-4 lg:gap-3">
-            <div className="rounded-2xl bg-slate-50 px-3 py-2 lg:p-3">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Recaudado</p>
-              <p className="mt-1 text-xs font-semibold text-slate-800 lg:text-sm">
-                {formatearMonto(activeEvent?.montoRecaudado ?? 0)}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 px-3 py-2 lg:p-3">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Pendiente</p>
-              <p className="mt-1 text-xs font-semibold text-slate-800 lg:text-sm">
-                {formatearMonto(activeEvent?.montoPendiente ?? 0)}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 px-3 py-2 lg:p-3">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Seleccion</p>
-              <p className="mt-1 text-xs font-semibold text-slate-800 lg:text-sm">
-                {formatLocalDate(selectedDate.toDate())}
-              </p>
-            </div>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Recaudado', value: formatearMonto(activeEvent?.montoRecaudado ?? 0) },
+              { label: 'Pendiente', value: formatearMonto(activeEvent?.montoPendiente ?? 0) },
+              { label: 'Selección', value: formatLocalDate(selectedDate.toDate()) },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-xl bg-slate-50 px-3 py-2">
+                <p className="text-[9px] uppercase tracking-wider text-slate-400">{label}</p>
+                <p className="mt-0.5 text-xs font-semibold text-slate-700">{value}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-slate-500 lg:hidden">
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-success-600" />
-              Pago registrado
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5 text-danger-600" />
-              Hito critico
-            </span>
-            {activeEvent ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Flag className="h-3.5 w-3.5 text-brand-600" />
-                Meta: {activeEvent.nombre}
-              </span>
-            ) : null}
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
+            <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success-500" /> Pago</span>
+            <span className="inline-flex items-center gap-1"><AlertCircle  className="h-3 w-3 text-danger-500"  /> Crítico</span>
+            {activeEvent && <span className="inline-flex items-center gap-1"><Flag className="h-3 w-3 text-brand-500" /> {activeEvent.nombre}</span>}
           </div>
         </div>
 
-        <aside className="mt-4 hidden min-h-0 flex-col rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-4 lg:mt-0 lg:flex">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Vista ejecutiva
-          </p>
-          <div className="mt-4 rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Actividad</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{successfulMilestones.length}</p>
-            <p className="mt-1 text-xs text-slate-500">dias con pagos registrados</p>
-          </div>
-          <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Riesgo</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{criticalMilestones.length}</p>
-            <p className="mt-1 text-xs text-slate-500">hitos criticos detectados</p>
-          </div>
-          <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Dia seleccionado</p>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
-              {selectedMilestone?.label ?? 'Sin hitos registrados'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden w-52 shrink-0 flex-col gap-2 overflow-y-auto border-l border-slate-100 bg-slate-50/40 p-4 lg:flex">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Vista ejecutiva</p>
+
+          {[
+            { label: 'Actividad',      value: String(successMilestones.length),  sub: 'días con pagos'    },
+            { label: 'Riesgo',         value: String(criticalMilestones.length), sub: 'hitos críticos'   },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="rounded-xl bg-white px-3 py-2.5 shadow-sm">
+              <p className="text-[9px] uppercase tracking-wider text-slate-400">{label}</p>
+              <p className="mt-0.5 text-xl font-bold text-slate-900">{value}</p>
+              <p className="text-[10px] text-slate-400">{sub}</p>
+            </div>
+          ))}
+
+          <div className="rounded-xl bg-white px-3 py-2.5 shadow-sm">
+            <p className="text-[9px] uppercase tracking-wider text-slate-400">Día seleccionado</p>
+            <p className="mt-0.5 text-xs font-semibold text-slate-800">{selectedMilestone?.label ?? 'Sin hitos'}</p>
+            <p className="text-[10px] text-slate-400">
               {selectedMilestone
-                ? `${selectedMilestone.count} movimientos por ${formatearMonto(selectedMilestone.amount)}`
-                : 'Selecciona un dia del calendario para revisar su detalle.'}
+                ? `${selectedMilestone.count} mov · ${formatearMonto(selectedMilestone.amount)}`
+                : 'Selecciona un día'}
             </p>
           </div>
-          <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Meta activa</p>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
-              {activeEvent?.nombre ?? 'Sin evento vigente'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
+
+          <div className="rounded-xl bg-white px-3 py-2.5 shadow-sm">
+            <p className="text-[9px] uppercase tracking-wider text-slate-400">Meta activa</p>
+            <p className="mt-0.5 text-xs font-semibold text-slate-800">{activeEvent?.nombre ?? 'Sin evento'}</p>
+            <p className="text-[10px] text-slate-400">
               {activeEvent
-                ? `${activeEvent.cuotasPagadas} cuotas pagadas y ${activeEvent.cuotasPendientes} pendientes`
-                : 'Aqui veras el resumen del evento mas antiguo vigente.'}
+                ? `${activeEvent.cuotasPagadas} pagadas · ${activeEvent.cuotasPendientes} pendientes`
+                : 'El próximo evento aparecerá aquí.'}
             </p>
           </div>
-          <div className="mt-auto flex flex-col gap-2 pt-4 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-success-600" />
-              Pago registrado
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5 text-danger-600" />
-              Hito critico
-            </span>
-            {activeEvent ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Flag className="h-3.5 w-3.5 text-brand-600" />
-                Meta: {activeEvent.nombre}
-              </span>
-            ) : null}
+
+          <div className="mt-auto flex flex-col gap-1.5 border-t border-slate-200 pt-3 text-[10px] text-slate-400">
+            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-success-500" /> Pago registrado</span>
+            <span className="inline-flex items-center gap-1.5"><AlertCircle  className="h-3 w-3 text-danger-500"  /> Hito crítico</span>
+            {activeEvent && <span className="inline-flex items-center gap-1.5"><Flag className="h-3 w-3 text-brand-500" /> {activeEvent.nombre}</span>}
           </div>
         </aside>
       </div>

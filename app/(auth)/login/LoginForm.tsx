@@ -12,18 +12,17 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ redirectTo }: LoginFormProps) {
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
 
-  const [email, setEmail] = useState<string>(ROOT_DEV_EMAIL)
-  const [password, setPassword] = useState<string>(ROOT_DEV_PASSWORD)
+  const [email,        setEmail]        = useState<string>(ROOT_DEV_EMAIL)
+  const [password,     setPassword]     = useState<string>(ROOT_DEV_PASSWORD)
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error,        setError]        = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     setIsSubmitting(true)
     setError(null)
 
@@ -45,91 +44,88 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_60px_-34px_rgba(15,23,42,0.38)]">
-      <div className="border-b border-brand-100 bg-[linear-gradient(135deg,rgba(37,99,235,0.08),rgba(240,253,244,0.9))] px-6 py-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
+    <div className="overflow-hidden rounded-3xl bg-white/10 ring-1 ring-white/20 backdrop-blur-md">
+      {/* Header */}
+      <div className="border-b border-white/10 px-6 py-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
           Acceso seguro
         </p>
-        <h2 className="mt-2 text-xl font-semibold text-slate-900">Iniciar sesión</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
-          Entra con tu correo registrado para revisar pagos, votaciones y movimientos del curso.
-        </p>
+        <h2 className="mt-1 text-lg font-semibold text-white">Iniciar sesión</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 px-6 py-6">
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-700">Correo electrónico</span>
-          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100">
-            <Mail className="h-[18px] w-[18px] text-slate-400" />
+      <form onSubmit={handleSubmit} className="space-y-3 px-6 py-5">
+        {/* Email */}
+        <label className="block space-y-1.5">
+          <span className="text-xs font-medium text-white/70">Correo electrónico</span>
+          <span className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15 focus-within:bg-white/15 focus-within:ring-white/30">
+            <Mail className="h-4 w-4 shrink-0 text-white/50" />
             <input
               type="email"
               inputMode="email"
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border-0 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
               placeholder="tu-correo@colegio.cl"
               required
             />
           </span>
         </label>
 
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-700">Contraseña</span>
-          <span className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100">
-            <LockKeyhole className="h-[18px] w-[18px] text-slate-400" />
+        {/* Password */}
+        <label className="block space-y-1.5">
+          <span className="text-xs font-medium text-white/70">Contraseña</span>
+          <span className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15 focus-within:bg-white/15 focus-within:ring-white/30">
+            <LockKeyhole className="h-4 w-4 shrink-0 text-white/50" />
             <input
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border-0 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
               placeholder="Tu contraseña"
               required
             />
             <button
               type="button"
-              onClick={() => setShowPassword((current) => !current)}
-              className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 active:scale-95"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              onClick={() => setShowPassword((v) => !v)}
+              className="rounded-full p-1 text-white/40 transition hover:text-white/70"
+              aria-label={showPassword ? 'Ocultar' : 'Mostrar'}
             >
-              {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </span>
         </label>
 
+        {/* Info / Error */}
         {error ? (
-          <div className="rounded-2xl border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-600">
+          <div className="rounded-2xl bg-red-500/20 px-4 py-3 text-sm text-red-200 ring-1 ring-red-400/20">
             {error}
           </div>
         ) : (
-          <div className="rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700">
-            Acceso de desarrollo precargado: <span className="font-semibold">{ROOT_DEV_EMAIL}</span>
+          <div className="rounded-2xl bg-white/8 px-4 py-2.5 text-xs text-white/50 ring-1 ring-white/10">
+            Dev: <span className="font-medium text-white/70">{ROOT_DEV_EMAIL}</span>
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_-20px_rgba(37,99,235,0.9)] transition hover:bg-brand-700 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-brand-700 shadow-lg transition hover:bg-white/90 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? (
-            <>
-              <LoaderCircle className="h-[18px] w-[18px] animate-spin" />
-              Ingresando...
-            </>
+            <><LoaderCircle className="h-4 w-4 animate-spin" /> Ingresando...</>
           ) : (
-            <>
-              Entrar al dashboard
-              <ArrowRight className="h-[18px] w-[18px]" />
-            </>
+            <>Entrar al dashboard <ArrowRight className="h-4 w-4" /></>
           )}
         </button>
       </form>
 
-      <div className="border-t border-slate-100 px-6 py-4 text-center text-sm text-slate-500">
+      {/* Footer */}
+      <div className="border-t border-white/10 px-6 py-4 text-center text-xs text-white/50">
         ¿Tienes un código de invitación?{' '}
-        <Link href="/registro" className="font-medium text-brand-600 transition hover:text-brand-700 hover:underline">
+        <Link href="/registro" className="font-medium text-white/80 transition hover:text-white">
           Regístrate aquí
         </Link>
       </div>

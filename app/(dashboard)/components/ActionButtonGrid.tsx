@@ -44,34 +44,33 @@ const actionItems: ActionButtonItem[] = [
 
 export default function ActionButtonGrid() {
   return (
-    <section className="h-full rounded-3xl border border-slate-200 bg-white p-3 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.9)] lg:rounded-[2rem] lg:p-4">
-      <div className="mb-3 lg:mb-4">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-3 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.9)] lg:flex lg:h-full lg:flex-col lg:rounded-[2rem] lg:p-4">
+
+      {/* Desktop-only label */}
+      <div className="mb-3 hidden lg:block">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
           Acciones
         </p>
-        <p className="mt-1 text-xs text-slate-500 lg:text-sm">Acceso rapido</p>
-        <p className="mt-2 hidden text-xs leading-5 text-slate-500 lg:block">
-          Atajos para las tareas clave del curso y tu seguimiento financiero diario.
-        </p>
       </div>
 
-      <div className="grid h-[calc(100%-2.25rem)] grid-cols-2 gap-2 lg:h-[calc(100%-4rem)] lg:gap-3">
+      {/* Mobile: 4-col row | Desktop: 2×2 grid filling remaining height */}
+      <div className="grid grid-cols-4 gap-2 lg:flex-1 lg:grid-cols-2 lg:gap-3">
         {actionItems.map(({ id, label, href, Icon, accentClassName }) => (
           <Link
             key={id}
             href={href}
             aria-label={label}
-            className="group flex min-h-[5rem] flex-col items-start justify-between rounded-2xl border border-slate-200 bg-slate-50/85 p-3 text-left transition duration-150 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white active:translate-y-0 active:scale-[0.97] active:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 lg:min-h-[6.75rem] lg:p-4"
+            className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/85 py-3 text-center transition duration-150 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white active:translate-y-0 active:scale-[0.97] active:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 lg:items-start lg:justify-between lg:rounded-2xl lg:p-4 lg:text-left"
           >
             <span
               className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-105 lg:h-11 lg:w-11',
+                'flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105 lg:h-10 lg:w-10 lg:rounded-2xl',
                 accentClassName
               )}
             >
-              <Icon className="h-[18px] w-[18px] lg:h-5 lg:w-5" />
+              <Icon className="h-[18px] w-[18px]" />
             </span>
-            <span className="text-xs font-semibold text-slate-800 lg:text-sm">{label}</span>
+            <span className="text-[11px] font-semibold text-slate-800 lg:text-sm">{label}</span>
           </Link>
         ))}
       </div>

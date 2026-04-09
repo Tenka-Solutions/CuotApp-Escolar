@@ -8,6 +8,7 @@ export type Json =
 
 export type Database = {
   public: {
+    PostgrestVersion: "12"
     Tables: {
       alumnos: {
         Row: {
@@ -740,6 +741,7 @@ export type Database = {
           pagado:               boolean | null
           saldo_favor_aplicado: number | null
         }
+        Relationships: []
       }
     }
     Functions: {

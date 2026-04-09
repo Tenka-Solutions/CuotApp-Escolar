@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import ThemeProvider from './components/ThemeProvider'
 import './globals.css'
 
 const inter = Inter({
@@ -16,29 +17,29 @@ export const metadata: Metadata = {
   description: 'Gobernanza, votación y transparencia financiera para cursos escolares en Chile.',
   applicationName: 'CuotApp',
   appleWebApp: {
-    capable:         true,
-    statusBarStyle:  'black-translucent',
-    title:           'CuotApp',
+    capable:        true,
+    statusBarStyle: 'black-translucent',
+    title:          'CuotApp',
   },
-  formatDetection: {
-    telephone: false,
-  },
+  formatDetection: { telephone: false },
 }
 
 export const viewport: Viewport = {
-  width:          'device-width',
-  initialScale:   1,
-  maximumScale:   1,
-  userScalable:   false,
-  viewportFit:    'cover',       // Respeta el notch en iPhone
-  themeColor:     '#2563eb',
+  width:        'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit:  'cover',
+  themeColor:   '#9333ea',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="h-full">
-      <body className={`${inter.variable} h-full font-sans`}>
-        {children}
+    <html lang="es">
+      <body className={`${inter.variable} font-sans`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

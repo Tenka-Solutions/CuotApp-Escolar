@@ -16,7 +16,7 @@ export default function ModuleShell({
 }: ModuleShellProps) {
   return (
     <div
-      className="flex h-full min-h-0 flex-col px-4 py-4 md:px-6 lg:px-0 lg:py-6"
+      className="flex flex-col px-4 py-4 pb-8 md:px-6 lg:h-full lg:min-h-0 lg:px-0 lg:py-6 lg:pb-0"
       style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
     >
       <div className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
