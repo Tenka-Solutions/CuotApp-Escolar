@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { RUTAS_PUBLICAS } from '@/lib/constants'
+import { ROOT_DEV_EMAIL, RUTA_DENEGADO, RUTA_PENDIENTE, RUTAS_PUBLICAS } from '@/lib/constants'
 import type { Database } from '@/lib/types/database.types'
+import type { EstadoUsuario } from '@/lib/types'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -30,22 +31,51 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const esPublica = RUTAS_PUBLICAS.some(ruta => pathname.startsWith(ruta))
+  const esPublica     = RUTAS_PUBLICAS.some(ruta => pathname.startsWith(ruta))
+  const esRutaEstado  = pathname.startsWith(RUTA_PENDIENTE) || pathname.startsWith(RUTA_DENEGADO)
 
-  // Sin sesión → redirigir a login
-  if (!user && !esPublica) {
+  function redirigir(destino: string) {
+    const url = request.nextUrl.clone()
+    url.pathname = destino
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+
+  // Sin sesión → login
+  if (!user) {
+    if (esPublica || esRutaEstado) return supabaseResponse
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
   }
 
-  // Con sesión activa intentando acceder a login/registro → redirigir al dashboard
-  if (user && esPublica) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+  // Con sesión + ruta pública (login/registro) → dashboard
+  if (esPublica) return redirigir('/')
+
+  // Root dev: sin perfil en DB, acceso total
+  if (user.email?.toLowerCase() === ROOT_DEV_EMAIL) return supabaseResponse
+
+  // Verificar estado del perfil
+  const { data: perfilRaw } = await supabase
+    .from('perfiles')
+    .select('estado')
+    .eq('id', user.id)
+    .single()
+  const perfil = perfilRaw as { estado: EstadoUsuario } | null
+
+  const estado = perfil?.estado
+
+  if (estado === 'pendiente') {
+    return esRutaEstado ? supabaseResponse : redirigir(RUTA_PENDIENTE)
   }
+
+  if (estado === 'rechazado' || estado === 'suspendido') {
+    return esRutaEstado ? supabaseResponse : redirigir(RUTA_DENEGADO)
+  }
+
+  // Usuario activo intentando acceder a rutas de estado → dashboard
+  if (esRutaEstado) return redirigir('/')
 
   return supabaseResponse
 }
