@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
-import { Clock3, PieChart, Vote } from 'lucide-react'
+import Link from 'next/link'
+import { CalendarPlus, Clock3, PieChart, Vote } from 'lucide-react'
 import { ROOT_DEV_EMAIL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
-import type { OpcionVoto, Perfil, Votacion, Voto } from '@/lib/types'
+import type { OpcionVoto, Perfil, RolUsuario, Votacion, Voto } from '@/lib/types'
+import { ROLES_FINANCIERO } from '@/lib/constants'
 import ModuleShell from '../components/ModuleShell'
 import { formatLocalDate } from '../components/dashboard.utils'
 import VoteActionPanel from './VoteActionPanel'
 
 export const metadata: Metadata = { title: 'Votaciones' }
 
-type PerfilCurso = Pick<Perfil, 'id' | 'curso_id'>
+type PerfilCurso = Pick<Perfil, 'id' | 'curso_id' | 'rol'>
 type VotacionResumen = Pick<
   Votacion,
   'id' | 'tipo' | 'vuelta' | 'fecha_fin' | 'total_votantes_habilitados'
@@ -69,7 +71,7 @@ export default async function VotacionesPage() {
 
   const { data: perfilData } = await supabase
     .from('perfiles')
-    .select('id, curso_id')
+    .select('id, curso_id, rol')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -129,12 +131,25 @@ export default async function VotacionesPage() {
     }))
   }
 
+  const puedeProponerEvento = perfil && ROLES_FINANCIERO.includes(perfil.rol as RolUsuario)
+
   return (
     <ModuleShell
       title="Votaciones"
       description="Revisa las votaciones abiertas del curso, su participacion actual y emite tu voto desde el mismo panel."
       badge={`${votaciones.length} abiertas`}
     >
+      {puedeProponerEvento && (
+        <div className="mb-4">
+          <Link
+            href="/eventos/nuevo"
+            className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98]"
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Proponer nuevo evento
+          </Link>
+        </div>
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         {votaciones.length > 0 ? (
           votaciones.map((votacion) => {
