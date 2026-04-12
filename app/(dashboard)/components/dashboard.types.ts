@@ -41,6 +41,19 @@ export interface DashboardMovement {
   tipo: TipoTransaccion
 }
 
+export interface MiCuota {
+  montoTotal:          number
+  montoUnitario:       number
+  cantidadAlumnos:     number
+  pagado:              boolean
+  fechaPago:           string | null
+}
+
+export interface AdminStats {
+  pendingApprovals:    number
+  pendingTransactions: number
+}
+
 export interface PendingVote {
   id: string
   tipo: TipoVotacion

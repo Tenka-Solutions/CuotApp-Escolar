@@ -1,21 +1,25 @@
 import type { Metadata } from 'next'
-import { ROOT_DEV_EMAIL, ROLES_JERARQUIA } from '@/lib/constants'
+import { ROOT_DEV_EMAIL, ROLES_FINANCIERO, ROLES_JERARQUIA } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Billetera, Cuota, Evento, Perfil, Transaccion, Votacion, Voto } from '@/lib/types'
 import { toDateKey } from './components/dashboard.utils'
 import type {
+  AdminStats,
   DashboardMovement,
   EventoActivo,
+  MiCuota,
   PaymentMilestone,
   PendingVote,
   SaldoTotal,
 } from './components/dashboard.types'
 
-import TopBar        from './components/TopBar'
-import BalanceCard   from './components/BalanceCard'
-import EventCard     from './components/EventCard'
-import QuickActions  from './components/QuickActions'
-import ActivityFeed  from './components/ActivityFeed'
+import TopBar          from './components/TopBar'
+import BalanceCard     from './components/BalanceCard'
+import MiCuotaCard    from './components/MiCuotaCard'
+import AdminStatsStrip from './components/AdminStatsStrip'
+import EventCard       from './components/EventCard'
+import QuickActions    from './components/QuickActions'
+import ActivityFeed    from './components/ActivityFeed'
 import PaymentCalendar from './components/PaymentCalendar'
 
 export const metadata: Metadata = { title: 'Dashboard' }
@@ -176,11 +180,15 @@ export default async function DashboardPage() {
   let userName:       string
   let userRole:       string
   let pendingCount:   number
+  let miCuota:        MiCuota | null
+  let adminStats:     AdminStats | null
 
   if (!perfil && isRootDev) {
     const fb = getRootFallbackData()
     ;({ balance, activeEvent, milestones, transacciones, votaciones, courseName, courseSubtitle, userName, userRole } = fb)
     pendingCount = 0
+    miCuota      = null
+    adminStats   = { pendingApprovals: 0, pendingTransactions: 3 }
   } else {
     const [
       { data: billeterasData },
@@ -245,11 +253,41 @@ export default async function DashboardPage() {
     } else {
       pendingCount = 0
     }
+
+    // Cuota personal (sólo apoderado)
+    if (perfil!.rol === 'apoderado' && activeEvent) {
+      const { data: cuotaRaw } = await supabase
+        .from('cuotas')
+        .select('monto_total, monto_unitario, cantidad_alumnos, pagado, fecha_pago')
+        .eq('apoderado_id', perfil!.id)
+        .eq('evento_id', activeEvent.id)
+        .maybeSingle()
+      const c = cuotaRaw as { monto_total: number; monto_unitario: number; cantidad_alumnos: number; pagado: boolean; fecha_pago: string | null } | null
+      miCuota = c
+        ? { montoTotal: c.monto_total, montoUnitario: c.monto_unitario, cantidadAlumnos: c.cantidad_alumnos, pagado: c.pagado, fechaPago: c.fecha_pago }
+        : null
+    } else {
+      miCuota = null
+    }
+
+    // Stats admin (roles financieros)
+    if (ROLES_FINANCIERO.includes(perfil!.rol)) {
+      const { count: txCount } = await supabase
+        .from('transacciones')
+        .select('id', { count: 'exact', head: true })
+        .eq('curso_id', perfil!.curso_id)
+        .in('estado', ['pendiente_validacion', 'pendiente_aprobacion'])
+      adminStats = { pendingApprovals: pendingCount, pendingTransactions: txCount ?? 0 }
+    } else {
+      adminStats = null
+    }
   }
 
   const referenceDate = activeEvent?.fechaLimitePago ?? toDateKey(new Date())
 
   /* ── Render ── */
+  const esApoderado = userRole === 'apoderado'
+
   return (
     <>
       <TopBar
@@ -259,12 +297,19 @@ export default async function DashboardPage() {
         userRole={userRole}
       />
 
+      {adminStats && (
+        <AdminStatsStrip stats={adminStats} userRole={userRole} />
+      )}
+
       {/* ── Desktop: 3-column grid ─────────────────────────── */}
       <div className="hidden flex-1 gap-3 overflow-hidden p-3 lg:grid lg:grid-cols-[26%_1fr_26%]">
 
         {/* Left column: balance + event */}
         <div className="flex min-h-0 flex-col gap-3">
-          <BalanceCard balance={balance} />
+          {esApoderado
+            ? <MiCuotaCard cuota={miCuota} activeEvent={activeEvent} />
+            : <BalanceCard balance={balance} />
+          }
           <EventCard activeEvent={activeEvent} />
         </div>
 
