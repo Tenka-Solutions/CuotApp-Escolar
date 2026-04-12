@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { ROOT_DEV_EMAIL } from '@/lib/constants'
+import { ROOT_DEV_EMAIL, ROLES_JERARQUIA } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Billetera, Cuota, Evento, Perfil, Transaccion, Votacion, Voto } from '@/lib/types'
 import { toDateKey } from './components/dashboard.utils'
@@ -166,19 +166,21 @@ export default async function DashboardPage() {
   if (!perfil && !isRootDev) return null
 
   /* ── Data ── */
-  let balance:       SaldoTotal
-  let activeEvent:   EventoActivo | null
-  let milestones:    PaymentMilestone[]
-  let transacciones: DashboardMovement[]
-  let votaciones:    PendingVote[]
-  let courseName:    string
+  let balance:        SaldoTotal
+  let activeEvent:    EventoActivo | null
+  let milestones:     PaymentMilestone[]
+  let transacciones:  DashboardMovement[]
+  let votaciones:     PendingVote[]
+  let courseName:     string
   let courseSubtitle: string
-  let userName:      string
-  let userRole:      string
+  let userName:       string
+  let userRole:       string
+  let pendingCount:   number
 
   if (!perfil && isRootDev) {
     const fb = getRootFallbackData()
     ;({ balance, activeEvent, milestones, transacciones, votaciones, courseName, courseSubtitle, userName, userRole } = fb)
+    pendingCount = 0
   } else {
     const [
       { data: billeterasData },
@@ -231,6 +233,18 @@ export default async function DashboardPage() {
     courseSubtitle = [perfil!.cursos?.nivel, perfil!.cursos?.colegio].filter(Boolean).join(' · ')
     userName       = perfil!.nombre_completo ?? user.email ?? '—'
     userRole       = perfil!.rol ?? 'alumno'
+
+    // Conteo de pendientes sólo para roles con permiso de aprobación
+    if (ROLES_JERARQUIA.includes(perfil!.rol)) {
+      const { count } = await supabase
+        .from('perfiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('curso_id', perfil!.curso_id)
+        .eq('estado', 'pendiente')
+      pendingCount = count ?? 0
+    } else {
+      pendingCount = 0
+    }
   }
 
   const referenceDate = activeEvent?.fechaLimitePago ?? toDateKey(new Date())
@@ -265,7 +279,7 @@ export default async function DashboardPage() {
 
         {/* Right column: actions + feed */}
         <div className="flex min-h-0 flex-col gap-3">
-          <QuickActions />
+          <QuickActions userRole={userRole} pendingCount={pendingCount} />
           <ActivityFeed transacciones={transacciones} votaciones={votaciones} />
         </div>
 
