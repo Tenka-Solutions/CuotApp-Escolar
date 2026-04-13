@@ -230,8 +230,12 @@ export default async function VotacionesPage() {
             )
           })
         ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-slate-500 lg:col-span-2">
-            No hay votaciones abiertas por ahora.
+          <div className="flex flex-col items-center gap-3 rounded-[1.75rem] border border-slate-200 bg-white px-6 py-16 text-center lg:col-span-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">
+              <Vote className="h-6 w-6 text-slate-300" />
+            </div>
+            <p className="text-sm font-semibold text-slate-500">Sin votaciones abiertas</p>
+            <p className="text-xs text-slate-400">Cuando se propongan eventos o gastos, las votaciones aparecerán aquí.</p>
           </div>
         )}
       </div>

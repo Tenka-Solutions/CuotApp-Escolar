@@ -82,7 +82,7 @@ export const REGLAS = {
 } as const
 
 // ── Rutas públicas (sin autenticación requerida) ──────────────────────────────
-export const RUTAS_PUBLICAS = ['/login', '/registro'] as const
+export const RUTAS_PUBLICAS = ['/login', '/registro', '/recuperar', '/nueva-contrasena'] as const
 
 /** Rutas accesibles solo por usuarios autenticados con estado no-activo. */
 export const RUTA_PENDIENTE = '/pendiente-aprobacion' as const

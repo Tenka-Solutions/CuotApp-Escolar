@@ -28,10 +28,13 @@ export default function AdminStatsStrip({ stats, userRole }: AdminStatsStripProp
         </Link>
       )}
       {showTx && (
-        <div className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
+        <Link
+          href="/admin/transacciones"
+          className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 active:scale-[0.98]"
+        >
           <ClipboardCheck className="h-3.5 w-3.5" />
           {stats.pendingTransactions} transacción{stats.pendingTransactions > 1 ? 'es' : ''} por validar
-        </div>
+        </Link>
       )}
     </div>
   )

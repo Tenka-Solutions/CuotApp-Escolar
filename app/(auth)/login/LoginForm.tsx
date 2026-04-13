@@ -123,11 +123,18 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
       </form>
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-6 py-4 text-center text-xs text-white/50">
-        ¿Tienes un código de invitación?{' '}
-        <Link href="/registro" className="font-medium text-white/80 transition hover:text-white">
-          Regístrate aquí
-        </Link>
+      <div className="space-y-2 border-t border-white/10 px-6 py-4 text-center text-xs text-white/50">
+        <p>
+          <Link href="/recuperar" className="font-medium text-white/70 transition hover:text-white">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+        <p>
+          ¿Tienes un código de invitación?{' '}
+          <Link href="/registro" className="font-medium text-white/80 transition hover:text-white">
+            Regístrate aquí
+          </Link>
+        </p>
       </div>
     </div>
   )

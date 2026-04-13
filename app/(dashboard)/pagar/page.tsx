@@ -215,8 +215,10 @@ export default async function PagarPage() {
                   </article>
                 ))
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-slate-500">
-                  Aun no hay pagos reportados para este curso.
+                <div className="flex flex-col items-center gap-2 rounded-2xl bg-slate-50/70 px-6 py-10 text-center">
+                  <ReceiptText className="h-8 w-8 text-slate-200" />
+                  <p className="text-sm font-semibold text-slate-400">Sin pagos registrados</p>
+                  <p className="text-xs text-slate-400">Los pagos reportados aparecerán aquí.</p>
                 </div>
               )}
             </div>
