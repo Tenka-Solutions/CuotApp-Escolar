@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { CheckCircle2, LoaderCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { OpcionVoto } from '@/lib/types'
+import type { OpcionVoto, TipoVotacion } from '@/lib/types'
 import { submitVote, type VoteActionState } from './actions'
 
 interface VoteActionPanelProps {
@@ -11,6 +11,7 @@ interface VoteActionPanelProps {
   initialOption: OpcionVoto | null
   disabled?: boolean
   disabledMessage?: string | null
+  tipoVotacion?: TipoVotacion
 }
 
 const INITIAL_STATE: VoteActionState = {
@@ -19,12 +20,13 @@ const INITIAL_STATE: VoteActionState = {
   selectedOption: null,
 }
 
-const OPTION_COPY: Array<{ value: OpcionVoto; label: string; tone: string }> = [
-  { value: 'si', label: 'Si', tone: 'bg-success-50 text-success-700 border-success-200' },
-  { value: 'no', label: 'No', tone: 'bg-danger-50 text-danger-700 border-danger-200' },
+const OPTION_COPY: Array<{ value: OpcionVoto; label: string; surplusLabel: string; tone: string }> = [
+  { value: 'si', label: 'Sí', surplusLabel: 'Fondo reserva', tone: 'bg-success-50 text-success-700 border-success-200' },
+  { value: 'no', label: 'No', surplusLabel: 'Saldo a favor', tone: 'bg-danger-50 text-danger-700 border-danger-200' },
   {
     value: 'abstencion',
-    label: 'Abstencion',
+    label: 'Abstención',
+    surplusLabel: 'Abstención',
     tone: 'bg-slate-100 text-slate-700 border-slate-200',
   },
 ]
@@ -34,7 +36,9 @@ export default function VoteActionPanel({
   initialOption,
   disabled = false,
   disabledMessage,
+  tipoVotacion,
 }: VoteActionPanelProps) {
+  const isSurplus = tipoVotacion === 'destino_sobrante'
   const [state, formAction, isPending] = useActionState(submitVote, {
     ...INITIAL_STATE,
     selectedOption: initialOption,
@@ -78,7 +82,7 @@ export default function VoteActionPanel({
                     Guardando
                   </span>
                 ) : (
-                  option.label
+                  isSurplus ? option.surplusLabel : option.label
                 )}
               </button>
             )

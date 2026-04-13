@@ -225,11 +225,15 @@ export default async function VotacionesPage() {
                 {/* Conteos */}
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-2xl border border-success-100 bg-success-50 px-3 py-2.5 text-center">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-success-600">Sí</p>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-success-600">
+                      {votacion.tipo === 'destino_sobrante' ? 'Fondo' : 'Sí'}
+                    </p>
                     <p className="mt-1 text-xl font-bold text-success-700">{votacion.counts.si}</p>
                   </div>
                   <div className="rounded-2xl border border-danger-100 bg-danger-50 px-3 py-2.5 text-center">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-danger-600">No</p>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-danger-600">
+                      {votacion.tipo === 'destino_sobrante' ? 'Saldo' : 'No'}
+                    </p>
                     <p className="mt-1 text-xl font-bold text-danger-700">{votacion.counts.no}</p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
@@ -257,6 +261,7 @@ export default async function VotacionesPage() {
                     initialOption={votacion.myVote}
                     disabled={Boolean(votingBlockedMessage)}
                     disabledMessage={votingBlockedMessage}
+                    tipoVotacion={votacion.tipo}
                   />
                 )}
               </article>
