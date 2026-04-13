@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { CreditCard, EyeOff, Landmark, ReceiptText, UserRound } from 'lucide-react'
+import { CreditCard, EyeOff, ReceiptText, UserRound } from 'lucide-react'
 import { ROOT_DEV_EMAIL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Evento, Perfil, Transaccion } from '@/lib/types'
@@ -173,147 +173,158 @@ export default async function PagarPage() {
       description="Consulta el evento activo, registra pagos y sigue el estado de cada envio desde el mismo flujo."
       badge={evento ? 'Evento activo' : 'Sin evento'}
     >
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_23rem]">
-        <div className="space-y-4">
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        {/* ── Left column ── */}
+        <div className="space-y-3">
+          {/* Evento + stats inline */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
             {evento ? (
               <>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                       Evento a pagar
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">{evento.nombre}</h2>
+                    <h2 className="mt-1 text-base font-semibold text-slate-900">{evento.nombre}</h2>
                   </div>
-                  <div className="rounded-2xl bg-success-50 p-3 text-success-600">
-                    <CreditCard className="h-5 w-5" />
+                  <div className="rounded-xl bg-success-50 p-2 text-success-600">
+                    <CreditCard className="h-4 w-4" />
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Meta</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-[9px] uppercase tracking-[0.14em] text-slate-400">Meta</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-900">
                       {formatearMonto(evento.monto_objetivo)}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                      Recaudado
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-[9px] uppercase tracking-[0.14em] text-slate-400">Recaudado</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-900">
                       {formatearMonto(montoRecaudado)}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                      Cierre
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-[9px] uppercase tracking-[0.14em] text-slate-400">Pendientes</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                      {cuotasPendientes} cuotas
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-[9px] uppercase tracking-[0.14em] text-slate-400">Cierre</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-900">
                       {formatLocalDate(evento.fecha_limite_pago)}
                     </p>
                   </div>
                 </div>
               </>
             ) : (
-              <p className="text-slate-500">No hay eventos activos para pagar por ahora.</p>
+              <p className="text-sm text-slate-500">No hay eventos activos para pagar por ahora.</p>
             )}
           </section>
 
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Ultimos pagos
-                </p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                  Registros recientes
-                </h2>
-              </div>
-              <div className="rounded-2xl bg-brand-50 p-3 text-brand-700">
-                <ReceiptText className="h-5 w-5" />
+          {/* Últimos pagos */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Ultimos pagos
+              </p>
+              <div className="rounded-xl bg-brand-50 p-2 text-brand-700">
+                <ReceiptText className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-3 divide-y divide-slate-100">
               {recentPayments.length > 0 ? (
                 recentPayments.map((payment) => (
-                  <article
-                    key={payment.id}
-                    className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">
+                  <div key={payment.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">
                         {payment.descripcion}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {payment.numero_boleta ?? 'Sin numero'} |{' '}
-                        {formatLocalDate(payment.fecha_registro)}
+                      <p className="text-[11px] text-slate-400">
+                        {payment.numero_boleta ?? 'Sin número'} · {formatLocalDate(payment.fecha_registro)}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-right">
                       <p className="text-sm font-bold text-slate-900">
                         {formatearMonto(payment.monto)}
                       </p>
                       <span
-                        className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${getStatusClass(payment.estado)}`}
+                        className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${getStatusClass(payment.estado)}`}
                       >
                         {getStatusCopy(payment.estado)}
                       </span>
                     </div>
-                  </article>
+                  </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center gap-2 rounded-2xl bg-slate-50/70 px-6 py-10 text-center">
-                  <ReceiptText className="h-8 w-8 text-slate-200" />
-                  <p className="text-sm font-semibold text-slate-400">Sin pagos registrados</p>
-                  <p className="text-xs text-slate-400">Los pagos reportados aparecerán aquí.</p>
+                <div className="flex flex-col items-center gap-1.5 py-8 text-center">
+                  <ReceiptText className="h-6 w-6 text-slate-200" />
+                  <p className="text-xs font-semibold text-slate-400">Sin pagos registrados</p>
                 </div>
               )}
             </div>
           </section>
 
+          {/* Deudores (below payments on left if present) */}
+          {deudores.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    Cuotas pendientes
+                  </p>
+                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">
+                    {deudores.length}
+                  </span>
+                </div>
+                {!deudores[0].identidad_revelada && (
+                  <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                    <EyeOff className="h-3 w-3" /> Protegido
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-2.5 grid gap-1.5 sm:grid-cols-2">
+                {deudores.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {d.identidad_revelada ? (
+                        <UserRound className="h-3 w-3 shrink-0 text-slate-400" />
+                      ) : (
+                        <EyeOff className="h-3 w-3 shrink-0 text-slate-300" />
+                      )}
+                      <p className="truncate text-[11px] font-medium text-slate-600">
+                        {d.identidad_revelada && d.nombre ? d.nombre : 'Anónimo'}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-[11px] font-bold text-slate-800">
+                      {formatearMonto(d.monto_total)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
-        <aside className="space-y-4">
-          {/* Stats card */}
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                Resumen del evento
+        {/* ── Right aside: form only ── */}
+        <aside>
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Registrar pago
               </p>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                <Landmark className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-                <p className="text-[9px] uppercase tracking-wider text-slate-400">Recaudado</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">{formatearMonto(montoRecaudado)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-                <p className="text-[9px] uppercase tracking-wider text-slate-400">Pendientes</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
-                  {evento ? `${cuotasPendientes} cuotas` : '—'}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Form card */}
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Registrar pago
-                </p>
-                <h2 className="mt-1.5 text-lg font-semibold text-slate-900">Enviar comprobante</h2>
-              </div>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-success-50 text-success-600">
+              <div className="rounded-xl bg-success-50 p-2 text-success-600">
                 <CreditCard className="h-4 w-4" />
               </div>
             </div>
-            <div className="mt-5">
+            <div className="mt-3">
               <PaymentSubmissionForm
                 eventoId={evento?.id ?? null}
                 suggestedDescription={suggestedDescription}
@@ -322,53 +333,6 @@ export default async function PagarPage() {
               />
             </div>
           </section>
-
-          {/* Deudores */}
-          {deudores.length > 0 && (
-            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Cuotas pendientes
-                </p>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                  <UserRound className="h-4 w-4" />
-                </div>
-              </div>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {deudores.length} sin pagar
-              </p>
-
-              {!deudores[0].identidad_revelada && (
-                <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <EyeOff className="h-3 w-3 shrink-0" />
-                  Identidades protegidas (70% del plazo)
-                </p>
-              )}
-
-              <div className="mt-3 space-y-1.5">
-                {deudores.map((d) => (
-                  <div
-                    key={d.id}
-                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {d.identidad_revelada ? (
-                        <UserRound className="h-3 w-3 shrink-0 text-slate-400" />
-                      ) : (
-                        <EyeOff className="h-3 w-3 shrink-0 text-slate-300" />
-                      )}
-                      <p className="truncate text-xs font-medium text-slate-600">
-                        {d.identidad_revelada && d.nombre ? d.nombre : 'Anónimo'}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-xs font-bold text-slate-900">
-                      {formatearMonto(d.monto_total)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </aside>
       </div>
     </ModuleShell>
