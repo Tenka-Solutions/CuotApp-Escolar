@@ -173,7 +173,7 @@ export default async function PagarPage() {
       description="Consulta el evento activo, registra pagos y sigue el estado de cada envio desde el mismo flujo."
       badge={evento ? 'Evento activo' : 'Sin evento'}
     >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_23rem]">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_23rem]">
         <div className="space-y-4">
           <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
             {evento ? (
