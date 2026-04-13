@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { CalendarPlus, Clock3, PieChart, Vote } from 'lucide-react'
+import { CalendarPlus, CheckCircle2, Clock3, PieChart, ShieldBan, Vote } from 'lucide-react'
 import { ROOT_DEV_EMAIL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { OpcionVoto, Perfil, RolUsuario, Votacion, Voto } from '@/lib/types'
@@ -8,13 +8,15 @@ import { ROLES_FINANCIERO } from '@/lib/constants'
 import ModuleShell from '../components/ModuleShell'
 import { formatLocalDate } from '../components/dashboard.utils'
 import VoteActionPanel from './VoteActionPanel'
+import VetoPanel from './VetoPanel'
+import { triggerSecondRounds } from './actions'
 
 export const metadata: Metadata = { title: 'Votaciones' }
 
 type PerfilCurso = Pick<Perfil, 'id' | 'curso_id' | 'rol'>
 type VotacionResumen = Pick<
   Votacion,
-  'id' | 'tipo' | 'vuelta' | 'fecha_fin' | 'total_votantes_habilitados'
+  'id' | 'tipo' | 'vuelta' | 'fecha_fin' | 'total_votantes_habilitados' | 'estado'
 >
 type VoteRow = Pick<Voto, 'id' | 'opcion' | 'usuario_id' | 'votacion_id'>
 
@@ -28,6 +30,8 @@ interface VoteCardData extends VotacionResumen {
   counts: VoteCounts
   myVote: OpcionVoto | null
 }
+
+type UserRoleInfo = { rol: RolUsuario | null; esProfesorJefe: boolean }
 
 function getVoteLabel(tipo: VotacionResumen['tipo']): string {
   switch (tipo) {
@@ -66,8 +70,12 @@ export default async function VotacionesPage() {
 
   if (!user) return null
 
+  // Auto-trigger second rounds for expired first-round votes
+  await triggerSecondRounds()
+
   let votaciones: VoteCardData[] = []
   let votingBlockedMessage: string | null = null
+  let roleInfo: UserRoleInfo = { rol: null, esProfesorJefe: false }
 
   const { data: perfilData } = await supabase
     .from('perfiles')
@@ -80,11 +88,13 @@ export default async function VotacionesPage() {
   if (!perfil && user.email?.toLowerCase() === ROOT_DEV_EMAIL) {
     votingBlockedMessage =
       'El usuario root de desarrollo puede revisar el modulo, pero para votar necesita un perfil persistido en la base.'
+    roleInfo = { rol: 'profesor_jefe', esProfesorJefe: true }
     votaciones = [
       {
         id: 'root-vote-1',
         tipo: 'gasto',
         vuelta: 1,
+        estado: 'primera_vuelta',
         fecha_fin: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
         total_votantes_habilitados: 24,
         counts: { si: 12, no: 3, abstencion: 1 },
@@ -93,19 +103,22 @@ export default async function VotacionesPage() {
       {
         id: 'root-vote-2',
         tipo: 'cierre_evento',
-        vuelta: 2,
-        fecha_fin: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
+        vuelta: 1,
+        estado: 'aprobada',
+        fecha_fin: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         total_votantes_habilitados: 24,
-        counts: { si: 8, no: 2, abstencion: 0 },
-        myVote: null,
+        counts: { si: 14, no: 3, abstencion: 2 },
+        myVote: 'si',
       },
     ]
   } else if (perfil?.curso_id) {
+    roleInfo = { rol: perfil.rol as RolUsuario, esProfesorJefe: perfil.rol === 'profesor_jefe' }
+
     const { data } = await supabase
       .from('votaciones')
-      .select('id, tipo, vuelta, fecha_fin, total_votantes_habilitados')
+      .select('id, tipo, vuelta, fecha_fin, total_votantes_habilitados, estado')
       .eq('curso_id', perfil.curso_id)
-      .in('estado', ['primera_vuelta', 'segunda_vuelta'])
+      .in('estado', ['primera_vuelta', 'segunda_vuelta', 'aprobada'])
       .order('fecha_fin', { ascending: true })
 
     const votingRows = (data ?? []) as VotacionResumen[]
@@ -169,6 +182,11 @@ export default async function VotacionesPage() {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                       Vuelta {votacion.vuelta}
+                      {votacion.vuelta === 2 && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
+                          Sin quórum mínimo
+                        </span>
+                      )}
                     </p>
                     <h2 className="mt-2 text-lg font-semibold text-slate-900">
                       {getVoteLabel(votacion.tipo)}
@@ -220,12 +238,27 @@ export default async function VotacionesPage() {
                   </div>
                 </div>
 
-                <VoteActionPanel
-                  votacionId={votacion.id}
-                  initialOption={votacion.myVote}
-                  disabled={Boolean(votingBlockedMessage)}
-                  disabledMessage={votingBlockedMessage}
-                />
+                {votacion.estado === 'aprobada' ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-2 rounded-2xl border border-success-200 bg-success-50 px-4 py-3 text-xs font-semibold text-success-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Votación aprobada
+                    </div>
+                    {roleInfo.esProfesorJefe && (
+                      <VetoPanel
+                        votacionId={votacion.id}
+                        disabled={Boolean(votingBlockedMessage)}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <VoteActionPanel
+                    votacionId={votacion.id}
+                    initialOption={votacion.myVote}
+                    disabled={Boolean(votingBlockedMessage)}
+                    disabledMessage={votingBlockedMessage}
+                  />
+                )}
               </article>
             )
           })
