@@ -1,15 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Palette } from 'lucide-react'
 import { THEMES, applyTheme, type ThemeId } from '@/lib/themes'
 
 export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  const getMenuStyle = (): React.CSSProperties => {
+    if (!btnRef.current) return {}
+    const rect = btnRef.current.getBoundingClientRect()
+    return {
+      position: 'fixed',
+      top: rect.bottom + 8,
+      right: window.innerWidth - rect.right,
+    }
+  }
 
   return (
-    <div className="relative">
+    <div>
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 active:scale-95"
         aria-label="Cambiar tema de color"
@@ -20,9 +32,12 @@ export default function ThemeSwitcher() {
       {open && (
         <>
           {/* backdrop */}
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          <div className="absolute right-0 top-10 z-20 min-w-[180px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+          <div
+            className="z-50 min-w-[180px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+            style={getMenuStyle()}
+          >
             <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               Tema de color
             </p>
