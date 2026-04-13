@@ -1,15 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Palette } from 'lucide-react'
 import { THEMES, applyTheme, type ThemeId } from '@/lib/themes'
 
 export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  useEffect(() => {
+    if (open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 6, left: r.right })
+    }
+  }, [open])
 
   return (
     <div>
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 active:scale-95"
         aria-label="Cambiar tema de color"
@@ -19,27 +29,27 @@ export default function ThemeSwitcher() {
 
       {open && (
         <>
-          {/* backdrop — dims content so menu is clearly on top */}
+          {/* transparent backdrop to close on click-away */}
           <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[999]"
             onClick={() => setOpen(false)}
           />
 
-          {/* centered menu */}
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={() => setOpen(false)}>
+          {/* dropdown anchored to button */}
+          {pos && (
             <div
-              className="w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed z-[1000] w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              style={{ top: pos.top, left: pos.left, transform: 'translateX(-100%)' }}
             >
-              <p className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              <p className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                 Tema de color
               </p>
-              <div className="pb-2">
+              <div className="pb-1.5">
                 {THEMES.map((theme) => (
                   <button
                     key={theme.id}
                     onClick={() => { applyTheme(theme.id as ThemeId); setOpen(false) }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                   >
                     <span className="flex shrink-0 gap-1">
                       <span
@@ -56,7 +66,7 @@ export default function ThemeSwitcher() {
                 ))}
               </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
