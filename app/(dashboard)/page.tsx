@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ROOT_DEV_EMAIL, ROLES_FINANCIERO, ROLES_JERARQUIA } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Billetera, Cuota, Evento, Perfil, Transaccion, Votacion, Voto } from '@/lib/types'
+import { modoEnMarchaActivo } from '@/lib/utils'
 import { toDateKey } from './components/dashboard.utils'
 import type {
   AdminStats,
@@ -20,13 +21,14 @@ import AdminStatsStrip from './components/AdminStatsStrip'
 import EventCard       from './components/EventCard'
 import QuickActions    from './components/QuickActions'
 import ActivityFeed    from './components/ActivityFeed'
+import ModoEnMarchaBanner from './components/ModoEnMarchaBanner'
 import PaymentCalendar from './components/PaymentCalendar'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
 /* ── Local types ─────────────────────────────────────────────────────────── */
 type PerfilConCurso = Pick<Perfil, 'id' | 'nombre_completo' | 'rol' | 'curso_id'> & {
-  cursos: { nombre: string; colegio: string; nivel: string | null; modo_en_marcha: boolean } | null
+  cursos: { nombre: string; colegio: string; nivel: string | null; modo_en_marcha: boolean; fecha_inicio: string } | null
 }
 type CursoWallet   = Pick<Billetera, 'tipo' | 'saldo'>
 type DashboardEvento = Pick<Evento, 'id' | 'nombre' | 'fecha_limite_pago' | 'monto_objetivo' | 'tipo_billetera'>
@@ -163,7 +165,7 @@ export default async function DashboardPage() {
 
   const { data: perfilData } = await supabase
     .from('perfiles')
-    .select('id, nombre_completo, rol, curso_id, cursos(nombre, colegio, nivel, modo_en_marcha)')
+    .select('id, nombre_completo, rol, curso_id, cursos(nombre, colegio, nivel, modo_en_marcha, fecha_inicio)')
     .eq('id', user.id)
     .single()
   const perfil = perfilData as PerfilConCurso | null
@@ -182,6 +184,7 @@ export default async function DashboardPage() {
   let pendingCount:   number
   let miCuota:        MiCuota | null
   let adminStats:     AdminStats | null
+  let modoEnMarcha:   { activo: boolean; fechaInicio: string } | null
 
   if (!perfil && isRootDev) {
     const fb = getRootFallbackData()
@@ -189,6 +192,7 @@ export default async function DashboardPage() {
     pendingCount = 0
     miCuota      = null
     adminStats   = { pendingApprovals: 0, pendingTransactions: 3 }
+    modoEnMarcha = { activo: true, fechaInicio: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString() }
   } else {
     const [
       { data: billeterasData },
@@ -281,6 +285,14 @@ export default async function DashboardPage() {
     } else {
       adminStats = null
     }
+
+    // Modo En Marcha: activo si el campo está encendido Y no han pasado 30 días
+    if (perfil!.cursos?.modo_en_marcha) {
+      const fechaInicio = perfil!.cursos.fecha_inicio
+      modoEnMarcha = { activo: modoEnMarchaActivo(fechaInicio), fechaInicio }
+    } else {
+      modoEnMarcha = null
+    }
   }
 
   const referenceDate = activeEvent?.fechaLimitePago ?? toDateKey(new Date())
@@ -299,6 +311,13 @@ export default async function DashboardPage() {
 
       {adminStats && (
         <AdminStatsStrip stats={adminStats} userRole={userRole} />
+      )}
+
+      {modoEnMarcha?.activo && (
+        <ModoEnMarchaBanner
+          fechaInicio={modoEnMarcha.fechaInicio}
+          esFundador={userRole === 'fundador'}
+        />
       )}
 
       {/* ── Desktop: 3-column grid ─────────────────────────── */}

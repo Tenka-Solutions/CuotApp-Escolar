@@ -102,6 +102,18 @@ export function calcularPorcentajePlazo(
 }
 
 /**
+ * Determina si el curso sigue en Modo En Marcha (primeros 30 días).
+ */
+export function modoEnMarchaActivo(
+  fechaInicio: string | Date,
+  ahora: Date = new Date()
+): boolean {
+  const inicio = new Date(fechaInicio).getTime()
+  const limite = inicio + REGLAS.MODO_EN_MARCHA_DIAS * 24 * 60 * 60 * 1000
+  return ahora.getTime() < limite
+}
+
+/**
  * Determina si se cumplió la Regla del 70% (revelar identidad de deudores).
  */
 export function deudorRevelado(

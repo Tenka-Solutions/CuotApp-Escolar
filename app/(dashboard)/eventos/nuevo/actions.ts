@@ -4,12 +4,14 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { REGLAS, ROLES_FINANCIERO } from '@/lib/constants'
 import type { Evento, RolUsuario, TablesInsert } from '@/lib/types'
+import { modoEnMarchaActivo } from '@/lib/utils'
 
 type PerfilAdmin = {
   id:                      string
   rol:                     RolUsuario
   curso_id:                string
   ultimo_evento_propuesto: string | null
+  cursos:                  { modo_en_marcha: boolean; fecha_inicio: string } | null
 }
 
 // Supabase typed client infiere 'never' en insert/update sin cast explícito
@@ -47,13 +49,22 @@ export async function proponerEvento(
   // Gate de rol
   const { data: perfilRaw } = await supabase
     .from('perfiles')
-    .select('id, rol, curso_id, ultimo_evento_propuesto')
+    .select('id, rol, curso_id, ultimo_evento_propuesto, cursos(modo_en_marcha, fecha_inicio)')
     .eq('id', user.id)
     .single()
   const perfil = perfilRaw as PerfilAdmin | null
 
   if (!perfil || !ROLES_FINANCIERO.includes(perfil.rol)) {
     return { error: 'No tienes permiso para proponer eventos.' }
+  }
+
+  // Modo En Marcha: solo el fundador puede proponer eventos durante los primeros 30 días
+  if (
+    perfil.cursos?.modo_en_marcha &&
+    modoEnMarchaActivo(perfil.cursos.fecha_inicio) &&
+    perfil.rol !== 'fundador'
+  ) {
+    return { error: 'El curso está en Modo En Marcha. Solo el fundador puede proponer eventos durante este período.' }
   }
 
   // Rate limiting: MAX_EVENTOS_POR_DIA

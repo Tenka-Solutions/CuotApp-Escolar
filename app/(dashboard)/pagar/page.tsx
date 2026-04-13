@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { CreditCard, Landmark, ReceiptText } from 'lucide-react'
+import { CreditCard, EyeOff, Landmark, ReceiptText, UserRound } from 'lucide-react'
 import { ROOT_DEV_EMAIL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import type { Evento, Perfil, Transaccion } from '@/lib/types'
@@ -16,6 +16,13 @@ type PaymentRecord = Pick<
   Transaccion,
   'id' | 'descripcion' | 'monto' | 'estado' | 'numero_boleta' | 'fecha_registro'
 >
+
+interface DeudorRow {
+  id: string
+  monto_total: number
+  identidad_revelada: boolean
+  nombre: string | null
+}
 
 function getStatusCopy(status: PaymentRecord['estado']): string {
   if (status === 'aprobada') return 'Aprobada'
@@ -52,6 +59,7 @@ export default async function PagarPage() {
   let cuotasPendientes = 0
   let recentPayments: PaymentRecord[] = []
   let disabledMessage: string | null = null
+  let deudores: DeudorRow[] = []
 
   if (!perfil && isRootDev) {
     evento = {
@@ -71,6 +79,12 @@ export default async function PagarPage() {
         numero_boleta: 'B-1024',
         fecha_registro: new Date().toISOString(),
       },
+    ]
+    deudores = [
+      { id: 'root-d-1', monto_total: 28000, identidad_revelada: true, nombre: 'María González' },
+      { id: 'root-d-2', monto_total: 28000, identidad_revelada: true, nombre: 'Carlos Muñoz' },
+      { id: 'root-d-3', monto_total: 28000, identidad_revelada: false, nombre: null },
+      { id: 'root-d-4', monto_total: 28000, identidad_revelada: false, nombre: null },
     ]
     disabledMessage =
       'El usuario root de desarrollo puede recorrer el modulo, pero para registrar pagos necesita un perfil persistido.'
@@ -107,6 +121,41 @@ export default async function PagarPage() {
         .reduce((sum, cuota) => sum + cuota.monto_total, 0)
       cuotasPendientes = cuotas.filter((cuota) => !cuota.pagado).length
       recentPayments = (paymentsData ?? []) as PaymentRecord[]
+
+      // Deudores: cuotas impagas del evento activo (vista censura identidad)
+      const { data: deudoresRaw } = await supabase
+        .from('cuotas_vista' as 'cuotas')
+        .select('id, monto_total, identidad_revelada, apoderado_id')
+        .eq('evento_id', evento.id)
+        .eq('pagado', false)
+
+      const cuotasImpagas = (deudoresRaw ?? []) as Array<{
+        id: string; monto_total: number; identidad_revelada: boolean; apoderado_id: string | null
+      }>
+
+      if (cuotasImpagas.length > 0) {
+        const revealedIds = cuotasImpagas
+          .filter((c) => c.identidad_revelada && c.apoderado_id)
+          .map((c) => c.apoderado_id!)
+
+        const nameMap = new Map<string, string>()
+        if (revealedIds.length > 0) {
+          const { data: nombresData } = await supabase
+            .from('perfiles')
+            .select('id, nombre_completo')
+            .in('id', revealedIds)
+          for (const p of (nombresData ?? []) as Array<{ id: string; nombre_completo: string }>) {
+            nameMap.set(p.id, p.nombre_completo)
+          }
+        }
+
+        deudores = cuotasImpagas.map((c) => ({
+          id: c.id ?? '',
+          monto_total: c.monto_total ?? 0,
+          identidad_revelada: c.identidad_revelada ?? false,
+          nombre: c.apoderado_id ? nameMap.get(c.apoderado_id) ?? null : null,
+        }))
+      }
     } else {
       disabledMessage = 'No hay un evento activo para registrar pagos en este momento.'
     }
@@ -223,6 +272,57 @@ export default async function PagarPage() {
               )}
             </div>
           </section>
+
+          {/* Deudores */}
+          {deudores.length > 0 && (
+            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    Cuotas pendientes
+                  </p>
+                  <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                    {deudores.length} apoderado{deudores.length !== 1 ? 's' : ''} sin pagar
+                  </h2>
+                </div>
+                <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                  <UserRound className="h-5 w-5" />
+                </div>
+              </div>
+
+              {!deudores[0].identidad_revelada && (
+                <div className="mt-3 flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
+                  <EyeOff className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  Identidades protegidas hasta el 70% del plazo de pago
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2">
+                {deudores.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+                        {d.identidad_revelada ? (
+                          <UserRound className="h-3.5 w-3.5" />
+                        ) : (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-slate-700">
+                        {d.identidad_revelada && d.nombre ? d.nombre : 'Apoderado anónimo'}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900">
+                      {formatearMonto(d.monto_total)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="space-y-4">
