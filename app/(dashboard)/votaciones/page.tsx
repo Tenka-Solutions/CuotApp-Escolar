@@ -179,47 +179,44 @@ export default async function VotacionesPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                      Cierre
-                    </p>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Cierre</p>
                     <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
                       <Clock3 className="h-4 w-4 text-brand-600" />
                       {votacion.fecha_fin ? formatLocalDate(votacion.fecha_fin) : 'Sin fecha'}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                      Participacion
-                    </p>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Participación</p>
                     <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
                       <PieChart className="h-4 w-4 text-success-600" />
-                      {participation}% del padron
+                      {participation}% del padrón
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-success-100 bg-success-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-success-700/80">
-                      Si
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-success-700">{votacion.counts.si}</p>
+                {/* Barra de participación */}
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-brand-500 transition-all duration-500"
+                    style={{ width: `${participation}%` }}
+                  />
+                </div>
+
+                {/* Conteos */}
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl border border-success-100 bg-success-50 px-3 py-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-success-600">Sí</p>
+                    <p className="mt-1 text-xl font-bold text-success-700">{votacion.counts.si}</p>
                   </div>
-                  <div className="rounded-2xl border border-danger-100 bg-danger-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-danger-700/80">
-                      No
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-danger-700">{votacion.counts.no}</p>
+                  <div className="rounded-2xl border border-danger-100 bg-danger-50 px-3 py-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-danger-600">No</p>
+                    <p className="mt-1 text-xl font-bold text-danger-700">{votacion.counts.no}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                      Abstencion
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-slate-700">
-                      {votacion.counts.abstencion}
-                    </p>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Abst.</p>
+                    <p className="mt-1 text-xl font-bold text-slate-600">{votacion.counts.abstencion}</p>
                   </div>
                 </div>
 

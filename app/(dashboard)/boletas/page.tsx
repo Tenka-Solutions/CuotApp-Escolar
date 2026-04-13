@@ -23,6 +23,16 @@ function getStatusClass(estado: BoletaRow['estado']) {
       : 'bg-warning-50 text-warning-600'
 }
 
+function getStatusLabel(estado: BoletaRow['estado']): string {
+  switch (estado) {
+    case 'aprobada':             return 'Aprobada'
+    case 'rechazada':            return 'Rechazada'
+    case 'pendiente_aprobacion': return 'Pend. aprobación'
+    case 'pendiente_validacion': return 'Pend. validación'
+    default:                     return estado
+  }
+}
+
 export default async function BoletasPage() {
   const supabase = await createClient()
   const {
@@ -81,54 +91,53 @@ export default async function BoletasPage() {
       description="Consulta el historial de comprobantes, su estado de validacion y accede al enlace del respaldo cuando exista."
       badge={`${boletas.length} registros`}
     >
-      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-        <div className="space-y-3">
-          {boletas.length > 0 ? (
-            boletas.map((boleta) => (
-              <article
-                key={boleta.id}
-                className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/75 p-4"
-              >
-                <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
-                  <FileText className="h-5 w-5" />
+      <div className="rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+        {boletas.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {boletas.map((boleta) => (
+              <article key={boleta.id} className="flex items-center gap-4 px-5 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                  <FileText className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900">{boleta.descripcion}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {boleta.numero_boleta ?? 'Sin numero'} |{' '}
-                    {formatLocalDate(boleta.fecha_registro)}
-                  </p>
-                  {boleta.url_comprobante ? (
-                    <a
-                      href={boleta.url_comprobante}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 transition hover:text-brand-800 hover:underline"
-                    >
-                      Ver comprobante
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : null}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900">{formatearMonto(boleta.monto)}</p>
-                  <span
-                    className={cn(
-                      'mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold',
-                      getStatusClass(boleta.estado)
+                  <p className="truncate text-sm font-semibold text-slate-900">{boleta.descripcion}</p>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+                    <span>{boleta.numero_boleta ?? 'Sin número'}</span>
+                    <span>·</span>
+                    <span>{formatLocalDate(boleta.fecha_registro)}</span>
+                    {boleta.url_comprobante && (
+                      <>
+                        <span>·</span>
+                        <a
+                          href={boleta.url_comprobante}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-brand-600 transition hover:text-brand-700"
+                        >
+                          Comprobante <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </>
                     )}
-                  >
-                    {boleta.estado}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold text-slate-900">{formatearMonto(boleta.monto)}</p>
+                  <span className={cn('mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold', getStatusClass(boleta.estado))}>
+                    {getStatusLabel(boleta.estado)}
                   </span>
                 </div>
               </article>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-10 text-center text-slate-500">
-              Todavia no hay boletas registradas.
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">
+              <FileText className="h-6 w-6 text-slate-300" />
             </div>
-          )}
-        </div>
+            <p className="text-sm font-semibold text-slate-500">Sin boletas registradas</p>
+            <p className="text-xs text-slate-400">Los comprobantes aparecerán aquí una vez que se registren pagos.</p>
+          </div>
+        )}
       </div>
     </ModuleShell>
   )

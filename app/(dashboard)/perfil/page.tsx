@@ -86,29 +86,46 @@ export default async function PerfilPage() {
           />
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <Mail className="h-5 w-5 text-brand-700" />
-            <p className="mt-3 text-sm font-semibold text-slate-900">Estado de acceso</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              {profileView?.estado === 'activo'
-                ? 'Tu cuenta esta activa y con acceso normal al dashboard.'
-                : 'Tu perfil aun necesita revision o activacion.'}
-            </p>
+        <div className="space-y-3">
+          {/* Estado de cuenta */}
+          <div className={`rounded-[1.75rem] border p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)] ${profileView?.estado === 'activo' ? 'border-success-200 bg-success-50' : 'border-slate-200 bg-white'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${profileView?.estado === 'activo' ? 'bg-success-100' : 'bg-slate-100'}`}>
+                <BadgeCheck className={`h-4 w-4 ${profileView?.estado === 'activo' ? 'text-success-600' : 'text-slate-400'}`} />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Estado de cuenta</p>
+                <p className={`text-sm font-semibold ${profileView?.estado === 'activo' ? 'text-success-700' : 'text-slate-700'}`}>
+                  {profileView?.estado === 'activo' ? 'Activa' : 'Pendiente de activación'}
+                </p>
+              </div>
+            </div>
           </div>
+
+          {/* Correo */}
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <BadgeCheck className="h-5 w-5 text-success-600" />
-            <p className="mt-3 text-sm font-semibold text-slate-900">Identidad visible</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Rol, correo y datos de contacto visibles para el seguimiento del curso.
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50">
+                <Mail className="h-4 w-4 text-brand-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Correo</p>
+                <p className="truncate text-sm font-semibold text-slate-800">{user.email}</p>
+              </div>
+            </div>
           </div>
+
+          {/* Teléfono */}
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <Phone className="h-5 w-5 text-slate-700" />
-            <p className="mt-3 text-sm font-semibold text-slate-900">Contacto rapido</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Mantener estos datos al dia ayuda a la gestion y validacion del curso.
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
+                <Phone className="h-4 w-4 text-slate-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Teléfono</p>
+                <p className="text-sm font-semibold text-slate-800">{profileView?.telefono ?? '—'}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

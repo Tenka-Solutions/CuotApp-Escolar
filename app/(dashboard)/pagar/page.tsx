@@ -224,30 +224,43 @@ export default async function PagarPage() {
         </div>
 
         <aside className="space-y-4">
+          {/* Stats card */}
           <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
-            <div className="rounded-2xl bg-brand-50 px-4 py-3">
-              <Landmark className="h-5 w-5 text-brand-700" />
-              <p className="mt-3 text-sm font-semibold text-brand-900">Pendientes actuales</p>
-              <p className="mt-1 text-xs leading-5 text-brand-700/80">
-                {evento
-                  ? `${cuotasPendientes} cuotas pendientes antes del cierre`
-                  : 'Cuando exista un evento activo, aqui veras su resumen financiero.'}
-              </p>
-            </div>
-
-            <div className="mt-4">
+            <div className="flex items-start justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                Registrar pago
+                Resumen del evento
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                Enviar comprobante
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Ingresa el monto, una descripcion y, si ya lo tienes, el link del
-                comprobante.
-              </p>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <Landmark className="h-4 w-4" />
+              </div>
             </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                <p className="text-[9px] uppercase tracking-wider text-slate-400">Recaudado</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{formatearMonto(montoRecaudado)}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                <p className="text-[9px] uppercase tracking-wider text-slate-400">Pendientes</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">
+                  {evento ? `${cuotasPendientes} cuotas` : '—'}
+                </p>
+              </div>
+            </div>
+          </section>
 
+          {/* Form card */}
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.85)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                  Registrar pago
+                </p>
+                <h2 className="mt-1.5 text-lg font-semibold text-slate-900">Enviar comprobante</h2>
+              </div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-success-50 text-success-600">
+                <CreditCard className="h-4 w-4" />
+              </div>
+            </div>
             <div className="mt-5">
               <PaymentSubmissionForm
                 eventoId={evento?.id ?? null}

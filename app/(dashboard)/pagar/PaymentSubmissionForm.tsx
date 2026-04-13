@@ -29,9 +29,9 @@ export default function PaymentSubmissionForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="eventoId" value={eventoId ?? ''} />
 
-      <div className="grid gap-4">
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-700">Monto reportado</span>
+      <div className="grid gap-3">
+        <label className="block space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Monto reportado</span>
           <input
             type="text"
             name="monto"
@@ -43,8 +43,8 @@ export default function PaymentSubmissionForm({
           />
         </label>
 
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-700">Descripcion</span>
+        <label className="block space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Descripción</span>
           <input
             type="text"
             name="descripcion"
@@ -54,9 +54,9 @@ export default function PaymentSubmissionForm({
           />
         </label>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Numero boleta</span>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">N° boleta</span>
             <input
               type="text"
               name="numeroBoleta"
@@ -66,8 +66,8 @@ export default function PaymentSubmissionForm({
             />
           </label>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">URL comprobante</span>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">URL comprobante</span>
             <input
               type="url"
               name="urlComprobante"
